@@ -73,3 +73,29 @@
     *   Explicitly assigned different agent frameworks (LangChain, LlamaIndex, AutoGen, Native) to different agents in the roster to mathematically fulfill the "Cross-Framework" challenge requirement.
     *   Cemented Band as the absolute required collaboration layer for state and task handoff.
 *   **Next Steps:** Wait for user approval on the `implementation_plan.md` artifact to begin scaffolding.
+### [2026-06-17] - Repository Initialization
+*   **What was done:** 
+    *   Successfully executed the `implementation_plan.md`.
+    *   Created the `/backend` directory with `express` and `@supabase/supabase-js`.
+    *   Scaffolded the `/frontend` directory using `create-next-app` with Tailwind CSS.
+    *   Committed the base boilerplate to Git.
+*   **What went wrong / Issues faced:** 
+    *   The user requested to avoid Conventional Commits prefixes (like `chore:`) and to use all lowercase strings instead. Adjusted git commit behavior moving forward.
+*   **Next Steps:** Begin building the core features (either the Band backend logic or the Next.js split-screen UI layout).
+
+### [2026-06-18] - Agent Workload Split (Frontend Focus)
+*   **What was done:** 
+    *   The user officially split the development workload. 
+    *   **This Agent** is now strictly assigned to the `/frontend` Next.js Dashboard (Continuous Shot UI, Glassmorphism, Iframe).
+    *   A **Separate Agent** will handle the `/backend` Codeband Node.js orchestration.
+    *   We will use this `context.md` file and shared interface files (like Supabase schemas) to "catch up" and stay synced.
+*   **Next Steps:** Wait for the backend agent to finish the Codeband orchestration so we can test the full pipeline.
+
+### [2026-06-18] - Frontend Supabase Integration
+*   **What was done:** 
+    *   Read the `schema.sql` pushed by the Backend Agent.
+    *   Installed `@supabase/supabase-js`.
+    *   Replaced the mock UI state in `page.tsx` with active Supabase real-time subscriptions to the `runs` and `agent_events` tables.
+    *   The `AgentChatPanel` now dynamically animates new `agent_events` as they are inserted.
+    *   The `LivePreview` iframe instantly injects HTML when the `runs` table is updated with `shared_context.html`.
+*   **Next Steps:** Await user testing with valid Supabase keys.
