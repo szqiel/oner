@@ -110,3 +110,12 @@
     *   Used `framer-motion` to smoothly fade out the landing screen and fade in the Continuous Shot dashboard when the user submits a prompt.
     *   Wired the prompt submission to hit `POST /api/start` on the backend.
 *   **Next Steps:** Test the full frontend-to-backend pipeline locally.
+
+### [2026-06-18] - Frontend UX Polish
+*   **What was done:** 
+    *   Updated meta tags in `layout.tsx` to "Oner" and "One-Continuous Web Builder".
+    *   Updated the `LandingScreen` H1 and description to match the new branding.
+    *   Added `sonner` and implemented `<Toaster />` for error handling (network failures during HitL dispatch).
+    *   Built a "Swarm Initialization" animated loading state inside `Dashboard.tsx` to hide the empty iframe until Kuli generates the first HTML payload.
+    *   Added a `useRef` auto-scroll mechanism to `AgentChatPanel.tsx` so the feed automatically stays at the newest message.
+*   **Next Steps:** Await the backend agent to finish their Langchain/Python logic so we can run an end-to-end test.
