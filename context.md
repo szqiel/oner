@@ -119,3 +119,11 @@
     *   Built a "Swarm Initialization" animated loading state inside `Dashboard.tsx` to hide the empty iframe until Kuli generates the first HTML payload.
     *   Added a `useRef` auto-scroll mechanism to `AgentChatPanel.tsx` so the feed automatically stays at the newest message.
 *   **Next Steps:** Await the backend agent to finish their Langchain/Python logic so we can run an end-to-end test.
+
+### [2026-06-18] - Premium 3D UI & Micro-interactions
+*   **What was done:** 
+    *   Implemented a global mouse-tracking spotlight on the `page.tsx` layout using Framer Motion (`useMotionValue` and `useMotionTemplate`).
+    *   Added 3D Parallax Tilt to the `AgentChatPanel` using `useSpring` and `useTransform` to rotate the panel dynamically as the mouse hovers over it.
+    *   Injected custom CSS keyframes (`text-shimmer`, `border-spin`) into `globals.css`.
+    *   Applied the animated text shimmer to the Oner H1 logo and an animated conic-gradient rotating border to the prompt input field.
+*   **Next Steps:** Wait for backend agent integration.
