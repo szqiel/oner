@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 export interface BandMessage {
   id: string;
@@ -18,6 +18,11 @@ interface AgentChatPanelProps {
 
 export default function AgentChatPanel({ messages, onSendMessage }: AgentChatPanelProps) {
   const [input, setInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +56,7 @@ export default function AgentChatPanel({ messages, onSendMessage }: AgentChatPan
             </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* HitL Input */}

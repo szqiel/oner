@@ -54,4 +54,12 @@
     *   Switched to `back` git branch and resolved `context.md` git conflicts.
 *   **What went wrong / Issues faced:** 
     *   `context_backend.md` was somehow lost during the branch switch/stash phase. Had to recreate it.
-*   **Next Steps:** Awaiting the Lead Developer to manually execute the `schema.sql` on the Supabase dashboard and test the API endpoints locally, then proceed to implement specific agent logic.
+### [2026-06-18] - The Librarian (LangChain) Implementation
+*   **What was done:** 
+    *   Switched exclusively to the `main` branch to collaborate with the Frontend agent.
+    *   Installed LangChain dependencies (`@langchain/core`, `@langchain/openai`, `langchain`, `zod`).
+    *   Created `lib/llm.js` generic wrapper that initializes a `ChatOpenAI` client pointing to the Bluesminds API using `BLUESMINDS_API_BASE_URL` and `BLUESMINDS_API_KEY`.
+    *   Fully implemented `agents/librarian.js`. Configured it to use `gpt-5-nano`, a Zod-based `StructuredOutputParser`, and a `PromptTemplate` to evaluate the prompt and assign models for Gambit, Kuli, and Glassion. The JSON output successfully posts back into the Band state (`shared_context.routing`).
+*   **What went wrong / Issues faced:** 
+    *   No issues faced during implementation.
+*   **Next Steps:** Proceed to implement either Gambit (LlamaIndex) or Kuli (Python AutoGen bridge).

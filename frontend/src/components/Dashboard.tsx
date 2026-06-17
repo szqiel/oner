@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import LivePreview from '@/components/LivePreview';
 import AgentChatPanel, { BandMessage } from '@/components/AgentChatPanel';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 export default function Dashboard() {
   const [messages, setMessages] = useState<BandMessage[]>([]);
@@ -129,19 +130,35 @@ export default function Dashboard() {
     setMessages(prev => [...prev, newMessage]);
 
     // Push to Supabase so the backend agent can pick it up
-    await supabase.from('agent_events').insert({
-      run_id: runId,
-      agent_name: 'Lead Developer',
-      event_type: 'HitL_INPUT',
-      output: { message: msg }
-    });
+    try {
+      await supabase.from('agent_events').insert({
+        run_id: runId,
+        agent_name: 'Lead Developer',
+        event_type: 'HitL_INPUT',
+        output: { message: msg }
+      });
+    } catch (error) {
+      toast.error('Failed to send message to swarm.');
+    }
   };
 
   return (
     <main className="relative w-full h-screen overflow-hidden bg-black">
-      {/* Background Live Preview */}
+      {/* Background Live Preview or Loading State */}
       <div className="absolute inset-0 z-0">
-        <LivePreview htmlContent={htmlContent} />
+        {!htmlContent ? (
+          <div className="flex flex-col items-center justify-center w-full h-full bg-[#050505]">
+            <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mb-6"></div>
+            <h2 className="text-xl font-medium text-white/80 animate-pulse tracking-wide">
+              The Swarm is orchestrating...
+            </h2>
+            <p className="text-sm text-white/40 mt-2">
+              Waiting for Kuli to compile the layout.
+            </p>
+          </div>
+        ) : (
+          <LivePreview htmlContent={htmlContent} />
+        )}
       </div>
 
       {/* Floating Agent Chat Panel */}

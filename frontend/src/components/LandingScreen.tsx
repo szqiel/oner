@@ -24,9 +24,12 @@ export default function LandingScreen({ onSubmit }: LandingScreenProps) {
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-3xl flex flex-col items-center"
       >
-        <h1 className="text-4xl md:text-6xl font-semibold tracking-tight mb-12 text-center text-white/90">
-          What do you want to build?
+        <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-2 text-center text-white">
+          Oner
         </h1>
+        <p className="text-lg md:text-xl text-white/60 mb-12 text-center">
+          One-Continuous Web Builder
+        </p>
 
         <form 
           onSubmit={handleSubmit}
