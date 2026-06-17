@@ -1,12 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useMotionValue, useMotionTemplate } from 'framer-motion';
 import LandingScreen from '@/components/LandingScreen';
 import Dashboard from '@/components/Dashboard';
 
 export default function Home() {
   const [hasStarted, setHasStarted] = useState(false);
+
+  // Spotlight logic
+  let mouseX = useMotionValue(0);
+  let mouseY = useMotionValue(0);
+
+  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
+    let { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
 
   const handleStart = async (prompt: string) => {
     // 1. Send the prompt to the backend orchestrator
@@ -30,7 +40,22 @@ export default function Home() {
   };
 
   return (
-    <div className="relative w-full h-screen bg-[#050505] overflow-hidden">
+    <div 
+      className="relative w-full h-screen bg-[#050505] overflow-hidden group"
+      onMouseMove={handleMouseMove}
+    >
+      <motion.div
+        className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 group-hover:opacity-100 z-[100]"
+        style={{
+          background: useMotionTemplate`
+            radial-gradient(
+              650px circle at ${mouseX}px ${mouseY}px,
+              rgba(255,255,255,0.05),
+              transparent 80%
+            )
+          `,
+        }}
+      />
       <AnimatePresence mode="wait">
         {!hasStarted ? (
           <motion.div

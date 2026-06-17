@@ -24,7 +24,7 @@ export default function LandingScreen({ onSubmit }: LandingScreenProps) {
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-3xl flex flex-col items-center"
       >
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-2 text-center text-white">
+        <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-2 text-center text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 via-white to-zinc-500 bg-[length:200%_auto] animate-text-shimmer">
           Oner
         </h1>
         <p className="text-lg md:text-xl text-white/60 mb-12 text-center">
@@ -35,8 +35,7 @@ export default function LandingScreen({ onSubmit }: LandingScreenProps) {
           onSubmit={handleSubmit}
           className="w-full relative group"
         >
-          {/* Subtle glow effect behind input */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-white/10 to-white/5 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+          <div className="absolute -inset-[2px] rounded-2xl blur-md opacity-20 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 bg-[conic-gradient(from_0deg,transparent_0_300deg,white_360deg)] animate-border-spin"></div>
           
           <div className="relative flex items-center bg-[#111111] border border-white/10 rounded-2xl p-2 shadow-2xl transition-all duration-300 focus-within:border-white/30 focus-within:bg-[#151515]">
             <textarea

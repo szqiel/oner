@@ -1,0 +1,21 @@
+# Oner Frontend Design & Architecture Guidelines
+
+## 1. Core Framework
+- All outputs must be raw HTML and Tailwind CSS (loaded via CDN) with Vanilla JS injected directly.
+- Do NOT use React or Next.js for the generated code, as it must run directly inside the simple iframe sandbox.
+
+## 2. Aesthetic Principles (Emil Kowalski Style)
+- Utilize glassmorphism: semi-transparent backgrounds with a slight backdrop blur (`backdrop-blur-md`, `bg-white/10` or `bg-black/40`).
+- Borders should be subtle (`border border-white/20`).
+- Typography should be clean, using sans-serif fonts natively available (Inter or system-ui).
+- Avoid flat colors. Use subtle gradients for backgrounds.
+- Add micro-animations using Tailwind classes (`transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg`).
+
+## 3. Structural Mandates
+- Every page must be responsive (`min-h-screen`, `flex`, `items-center`, `justify-center`).
+- Always wrap main content in a container with padding (`container mx-auto p-4` or `p-8`).
+
+## 4. Specific Component Guidelines
+- **Buttons**: Rounded corners (`rounded-lg` or `rounded-full`), smooth hover states, never use pure primary colors without a gradient or opacity tweak.
+- **Inputs**: Transparent backgrounds (`bg-transparent`), solid bottom borders or full outline on focus (`focus:ring-2 focus:ring-purple-500`).
+- **Cards**: Use the glassmorphism aesthetic outlined in Section 2.

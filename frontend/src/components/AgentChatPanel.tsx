@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
 export interface BandMessage {
   id: string;
@@ -20,6 +21,31 @@ export default function AgentChatPanel({ messages, onSendMessage }: AgentChatPan
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // 3D Parallax Tilt Logic
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const mouseXSpring = useSpring(x, { stiffness: 300, damping: 30 });
+  const mouseYSpring = useSpring(y, { stiffness: 300, damping: 30 });
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["5deg", "-5deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-5deg", "5deg"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+    x.set(xPct);
+    y.set(yPct);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -33,7 +59,12 @@ export default function AgentChatPanel({ messages, onSendMessage }: AgentChatPan
   };
 
   return (
-    <div className="glass-panel w-96 max-h-[80vh] flex flex-col overflow-hidden animate-[spring-up_0.6s_forwards]">
+    <motion.div 
+      className="glass-panel w-96 max-h-[80vh] flex flex-col overflow-hidden animate-[spring-up_0.6s_forwards]"
+      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Header */}
       <div className="px-4 py-3 border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
         <h3 className="font-semibold text-sm tracking-wide">Oner Swarm (Band)</h3>
@@ -77,6 +108,6 @@ export default function AgentChatPanel({ messages, onSendMessage }: AgentChatPan
           </button>
         </form>
       </div>
-    </div>
+    </motion.div>
   );
 }

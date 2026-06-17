@@ -1,5 +1,5 @@
 const { z } = require('zod');
-const { StructuredOutputParser } = require('langchain/output_parsers');
+const { StructuredOutputParser } = require('@langchain/core/output_parsers');
 const { PromptTemplate } = require('@langchain/core/prompts');
 const { getLLM } = require('../lib/llm');
 const bandState = require('../services/bandState');

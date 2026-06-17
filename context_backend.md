@@ -62,4 +62,12 @@
     *   Fully implemented `agents/librarian.js`. Configured it to use `gpt-5-nano`, a Zod-based `StructuredOutputParser`, and a `PromptTemplate` to evaluate the prompt and assign models for Gambit, Kuli, and Glassion. The JSON output successfully posts back into the Band state (`shared_context.routing`).
 *   **What went wrong / Issues faced:** 
     *   No issues faced during implementation.
-*   **Next Steps:** Proceed to implement either Gambit (LlamaIndex) or Kuli (Python AutoGen bridge).
+### [2026-06-18] - Gambit (LlamaIndex & RAG) Implementation
+*   **What was done:** 
+    *   Installed `llamaindex` in the backend.
+    *   Created mock design documents at `backend/data/design_guidelines.txt` covering Emil Kowalski-style aesthetics and glassmorphism.
+    *   Created `lib/llamaIndexLLM.js` to override the default LlamaIndex OpenAI client and embedding model `baseURL` using the Bluesminds API.
+    *   Implemented `agents/gambit.js` using `VectorStoreIndex` and `SimpleDirectoryReader` to perform RAG over the design guidelines. Gambit outputs a strict JSON blueprint which is pushed to `shared_context.blueprint`.
+*   **What went wrong / Issues faced:** 
+    *   No issues faced. The LlamaIndex integration went smoothly.
+*   **Next Steps:** Proceed to implement Kuli (AutoGen/CrewAI Python Bridge) or finalize testing of the Node.js agent loop.
