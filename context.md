@@ -73,7 +73,10 @@
     *   Explicitly assigned different agent frameworks (LangChain, LlamaIndex, AutoGen, Native) to different agents in the roster to mathematically fulfill the "Cross-Framework" challenge requirement.
     *   Cemented Band as the absolute required collaboration layer for state and task handoff.
 *   **Next Steps:** Wait for user approval on the `implementation_plan.md` artifact to begin scaffolding.
+<<<<<<< HEAD
 
+=======
+>>>>>>> back
 ### [2026-06-17] - Repository Initialization
 *   **What was done:** 
     *   Successfully executed the `implementation_plan.md`.
@@ -90,4 +93,17 @@
     *   **This Agent** is now strictly assigned to the `/frontend` Next.js Dashboard (Continuous Shot UI, Glassmorphism, Iframe).
     *   A **Separate Agent** will handle the `/backend` Codeband Node.js orchestration.
     *   We will use this `context.md` file and shared interface files (like Supabase schemas) to "catch up" and stay synced.
+<<<<<<< HEAD
 *   **Next Steps:** Create the `implementation_plan.md` for the Next.js Frontend UI layout.
+=======
+*   **Next Steps:** Wait for the backend agent to finish the Codeband orchestration so we can test the full pipeline.
+
+### [2026-06-18] - Frontend Supabase Integration
+*   **What was done:** 
+    *   Read the `schema.sql` pushed by the Backend Agent.
+    *   Installed `@supabase/supabase-js`.
+    *   Replaced the mock UI state in `page.tsx` with active Supabase real-time subscriptions to the `runs` and `agent_events` tables.
+    *   The `AgentChatPanel` now dynamically animates new `agent_events` as they are inserted.
+    *   The `LivePreview` iframe instantly injects HTML when the `runs` table is updated with `shared_context.html`.
+*   **Next Steps:** Await user testing with valid Supabase keys.
+>>>>>>> back

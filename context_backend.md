@@ -50,6 +50,8 @@
     *   Created Supabase state integration (`lib/supabase.js`, `services/bandState.js`).
     *   Scaffolded the cross-framework agent functions (`librarian.js`, `gambit.js`, `kuli.js`, `glassion.js`).
     *   Implemented the Codeband core workflow loop in `services/workflowRunner.js`, including the 2-failure HitL escalation protocol for Kuli.
+    *   Created `backend/.env` (and populated Supabase URL via MCP) and `backend/.gitignore`.
+    *   Switched to `back` git branch and resolved `context.md` git conflicts.
 *   **What went wrong / Issues faced:** 
-    *   No issues faced during scaffolding.
-*   **Next Steps:** Awaiting the Lead Developer to manually execute the `schema.sql` on the Supabase dashboard and then start testing the API endpoints locally.
+    *   `context_backend.md` was somehow lost during the branch switch/stash phase. Had to recreate it.
+*   **Next Steps:** Awaiting the Lead Developer to manually execute the `schema.sql` on the Supabase dashboard and test the API endpoints locally, then proceed to implement specific agent logic.
