@@ -3,79 +3,121 @@
 import React, { useState, useEffect } from 'react';
 import LivePreview from '@/components/LivePreview';
 import AgentChatPanel, { BandMessage } from '@/components/AgentChatPanel';
-
-const MOCK_MESSAGES: BandMessage[] = [
-  {
-    id: '1',
-    agent: 'The Librarian',
-    framework: 'LangChain',
-    action: 'Task Received',
-    content: 'Analyzing prompt: "Build a high-performance, modern dashboard application." Assigning models...',
-    timestamp: '10:00:01 AM',
-  },
-  {
-    id: '2',
-    agent: 'Gambit',
-    framework: 'LlamaIndex',
-    action: 'Plan Drafted',
-    content: 'Researched dark-mode UI patterns. Pushing architectural blueprint to Band state.',
-    timestamp: '10:00:15 AM',
-  },
-  {
-    id: '3',
-    agent: 'Crucible',
-    framework: 'Native',
-    action: 'Plan Locked',
-    content: 'Blueprint audited and approved. State updated to PLAN_LOCKED.',
-    timestamp: '10:00:18 AM',
-  },
-  {
-    id: '4',
-    agent: 'Kuli',
-    framework: 'AutoGen',
-    action: 'Code Generated',
-    content: 'Executed HTML/Tailwind styling for Hero section. Output pushed to Band.',
-    timestamp: '10:00:45 AM',
-  }
-];
-
-const MOCK_HTML = `
-  <html>
-    <head>
-      <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-      <style>
-        body { background-color: #050505; color: white; font-family: sans-serif; }
-      </style>
-    </head>
-    <body class="flex flex-col items-center justify-center h-screen bg-[#050505]">
-      <h1 class="text-5xl font-bold mb-4 tracking-tighter text-white">Oner Dashboard</h1>
-      <p class="text-lg text-gray-400 max-w-lg text-center">An enterprise software application orchestrated entirely by a cross-framework autonomous swarm.</p>
-      <button class="mt-8 px-6 py-2 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition">Get Started</button>
-    </body>
-  </html>
-`;
+import { supabase } from '@/lib/supabase';
 
 export default function Dashboard() {
   const [messages, setMessages] = useState<BandMessage[]>([]);
   const [htmlContent, setHtmlContent] = useState<string>('');
+  const [runId, setRunId] = useState<string | null>(null);
 
-  // Simulate real-time agent communication flow for the MVP demo
+  // Framework mapping helper
+  const getFramework = (agentName: string) => {
+    const lower = agentName.toLowerCase();
+    if (lower.includes('librarian')) return 'LangChain';
+    if (lower.includes('gambit')) return 'LlamaIndex';
+    if (lower.includes('kuli')) return 'AutoGen';
+    if (lower.includes('catalyst')) return 'LangChain';
+    if (lower.includes('glassion')) return 'Native Multimodal';
+    if (lower.includes('developer')) return 'Human';
+    return 'Band Agent';
+  };
+
   useEffect(() => {
-    let delay = 500;
-    MOCK_MESSAGES.forEach((msg) => {
-      delay += 800 + Math.random() * 1000;
-      setTimeout(() => {
-        setMessages(prev => [...prev, msg]);
+    // Helper to map DB row to our UI interface
+    const mapEventToMessage = (row: any): BandMessage => {
+      let contentString = '';
+      if (typeof row.output === 'string') {
+        contentString = row.output;
+      } else if (row.output && row.output.message) {
+        contentString = row.output.message;
+      } else {
+        contentString = JSON.stringify(row.output);
+      }
+
+      return {
+        id: row.id,
+        agent: row.agent_name,
+        framework: getFramework(row.agent_name),
+        action: row.event_type,
+        content: contentString,
+        timestamp: new Date(row.created_at).toLocaleTimeString(),
+      };
+    };
+
+    // 1. Fetch initial data (latest run and its events)
+    const fetchInitialData = async () => {
+      // Get the most recent run
+      const { data: runs } = await supabase
+        .from('runs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (runs && runs.length > 0) {
+        const latestRun = runs[0];
+        setRunId(latestRun.id);
         
-        // When Kuli finishes, trigger the iframe update
-        if (msg.agent === 'Kuli') {
-          setTimeout(() => setHtmlContent(MOCK_HTML), 600);
+        // If there's html in the shared_context, set it
+        if (latestRun.shared_context && latestRun.shared_context.html) {
+          setHtmlContent(latestRun.shared_context.html);
         }
-      }, delay);
-    });
+
+        // Fetch past events for this run
+        const { data: events } = await supabase
+          .from('agent_events')
+          .select('*')
+          .eq('run_id', latestRun.id)
+          .order('created_at', { ascending: true });
+
+        if (events) {
+          setMessages(events.map(mapEventToMessage));
+        }
+      }
+    };
+
+    fetchInitialData();
+
+    // 2. Setup Realtime Subscriptions
+    const channel = supabase.channel('codeband_realtime');
+
+    // Listen for new agent events (chat messages)
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'agent_events' },
+      (payload) => {
+        const newEvent = payload.new;
+        // Only append if it belongs to our active run
+        setMessages((prev) => {
+          // Prevent duplicates if multiple tabs/subscriptions
+          if (prev.find(m => m.id === newEvent.id)) return prev;
+          return [...prev, mapEventToMessage(newEvent)];
+        });
+      }
+    );
+
+    // Listen for state updates (HTML code generation)
+    channel.on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'runs' },
+      (payload) => {
+        const updatedRun = payload.new;
+        if (updatedRun.shared_context && updatedRun.shared_context.html) {
+          setHtmlContent(updatedRun.shared_context.html);
+        }
+      }
+    );
+
+    channel.subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const handleSendMessage = (msg: string) => {
+  const handleSendMessage = async (msg: string) => {
+    if (!runId) return;
+
+    // Instantly show in UI
     const newMessage: BandMessage = {
       id: Date.now().toString(),
       agent: 'Lead Developer',
@@ -85,10 +127,18 @@ export default function Dashboard() {
       timestamp: new Date().toLocaleTimeString(),
     };
     setMessages(prev => [...prev, newMessage]);
+
+    // Push to Supabase so the backend agent can pick it up
+    await supabase.from('agent_events').insert({
+      run_id: runId,
+      agent_name: 'Lead Developer',
+      event_type: 'HitL_INPUT',
+      output: { message: msg }
+    });
   };
 
   return (
-    <main className="relative w-full h-screen overflow-hidden">
+    <main className="relative w-full h-screen overflow-hidden bg-black">
       {/* Background Live Preview */}
       <div className="absolute inset-0 z-0">
         <LivePreview htmlContent={htmlContent} />
