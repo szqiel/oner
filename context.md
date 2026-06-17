@@ -2,7 +2,7 @@
 
 **Project Goal:** Build an autonomous, multi-agent developer swarm packaged as a full-stack web application (Continuous-shot SPA Builder).
 **Event:** Band of Agents Hackathon (Track 2: Multi-Agent Software Development)
-**Latest PRD:** `PRD/Oner_PRD_v1.6.md`
+**Latest PRD:** `PRD/Oner_PRD_v2.0.md`
 
 ## 🚨 AI Operating Instructions (Read & Update Protocol)
 **Mandatory Rules for AI Assistant:**
@@ -20,6 +20,11 @@
     *   **The Librarian:** Dynamically assigns specific LLM models based on prompt complexity.
     *   **Glassion (Vision QA):** Evaluates rendered UI against strict high-taste design principles (Emil Kowalski, Impeccable Style, Tasteskill). Outputs explicit CSS JSON to fix "AI Slop."
 *   **Human-in-the-Loop (HitL):** If an agent loop fails 2 consecutive times, the system halts and prompts the user (Lead Developer) to manually fix the code in the GUI and resume.
+*   **Final Implementation Details:**
+    *   **Agent Backend Hosting:** HuggingFace Docker (running the Node.js orchestrator).
+    *   **Builder Output Format:** Raw HTML + Tailwind CSS (CDN) + Vanilla JS for instant iframe injection.
+    *   **UI Layout:** "Continuous Shot" Floating Panel. The live UI takes 100% of the screen, and agent communications sit in a floating glassmorphic group chat panel.
+    *   **Repo Structure:** Monorepo with `frontend/` and `backend/` folders.
 
 ## 🤖 Agent Roster
 1.  **The Librarian:** Dispatcher & model allocator.
@@ -52,3 +57,19 @@
 *   **What went wrong / Issues faced:** 
     *   Need to ensure Vercel's serverless timeout limitations don't kill long-running agent loops. May need a dedicated Node.js server for the agent orchestration, separate from Next.js API routes, or use streaming/background jobs.
 *   **Next Steps:** Initialize the Next.js project.
+
+### [2026-06-17] - The /grill-me Interview & Architecture Lock-in
+*   **What was done:** 
+    *   Conducted a `/grill-me` session to resolve all outstanding architectural dependencies.
+    *   Locked in HuggingFace Docker for backend hosting, Raw HTML+Tailwind for Kuli's output, a floating glassmorphic UI layout, and a monorepo structure.
+*   **What went wrong / Issues faced:** 
+    *   *(None, smooth planning phase)*
+*   **Next Steps:** Write the `implementation_plan.md` to scaffold the `frontend/` and `backend/` folders.
+
+### [2026-06-17] - Final Hackathon Challenge Alignment
+*   **What was done:** 
+    *   Reviewed the official hackathon challenge image ("Build a Cross-Framework Multi-Agent System with Band").
+    *   Updated the PRD to `v2.0` (Final).
+    *   Explicitly assigned different agent frameworks (LangChain, LlamaIndex, AutoGen, Native) to different agents in the roster to mathematically fulfill the "Cross-Framework" challenge requirement.
+    *   Cemented Band as the absolute required collaboration layer for state and task handoff.
+*   **Next Steps:** Wait for user approval on the `implementation_plan.md` artifact to begin scaffolding.
