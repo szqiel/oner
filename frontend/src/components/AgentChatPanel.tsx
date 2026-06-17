@@ -66,7 +66,9 @@ export default function AgentChatPanel({ messages, onSendMessage }: AgentChatPan
       onMouseLeave={handleMouseLeave}
     >
       {/* Spinning Edge Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(255,255,255,0.8)_360deg)] animate-border-spin pointer-events-none"></div>
+      <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+        <div className="w-full h-full bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(255,255,255,0.8)_360deg)] animate-border-spin"></div>
+      </div>
       
       <div className="glass-panel relative z-10 flex flex-col overflow-hidden h-full w-full bg-[#050505]/90 rounded-[calc(1.5rem-1px)]">
       {/* Header */}

@@ -43,7 +43,13 @@ Return ONLY valid HTML code. Do NOT wrap the code in markdown formatting (like `
         code_execution_config=False
     )
     
-    message = f"User Prompt: {prompt}\n\nArchitectural Blueprint:\n{blueprint_json}\n\nPlease generate the complete raw HTML code."
+    # Check if there is a 6th argument for feedback
+    feedback = sys.argv[6] if len(sys.argv) > 6 else None
+
+    if feedback and feedback != "None":
+        message = f"User Prompt: {prompt}\n\nArchitectural Blueprint:\n{blueprint_json}\n\nQA Review Feedback:\n{feedback}\n\nPlease generate the corrected raw HTML code fixing the issues mentioned in the QA feedback."
+    else:
+        message = f"User Prompt: {prompt}\n\nArchitectural Blueprint:\n{blueprint_json}\n\nPlease generate the complete raw HTML code."
     
     # We trap stdout during initiate_chat to prevent autogen's internal logging from polluting our stdout payload
     import io

@@ -80,4 +80,12 @@
     *   Wired `stderr` to throw errors to trigger the HitL protocol in `workflowRunner.js`.
 *   **What went wrong / Issues faced:** 
     *   Minor regex cleanup needed to ensure AutoGen doesn't accidentally wrap the stdout in markdown code blocks.
-*   **Next Steps:** Proceed to implement Catalyst/Glassion, or tell the user to test the entire pipeline locally.
+### [2026-06-18] - Catalyst (LangChain Code QA) Implementation
+*   **What was done:** 
+    *   Implemented `backend/agents/catalyst.js` to parse Kuli's raw HTML and evaluate it strictly against the original blueprint using `gpt-4o`.
+    *   Updated `backend/python/kuli_agent.py` and `backend/agents/kuli.js` to accept QA feedback parameters.
+    *   Wired a while-loop in `services/workflowRunner.js` to continuously loop Kuli and Catalyst until the code passes QA or hits a maximum retry threshold (`MAX_QA_LOOPS = 2`).
+    *   If Catalyst fails after 3 total Kuli generation attempts, the orchestrator halts and triggers the `ESCALATED` Human-in-the-Loop protocol.
+*   **What went wrong / Issues faced:** 
+    *   No issues faced. The architecture smoothly supported adding the loop.
+*   **Next Steps:** Proceed to implement Glassion (Multimodal UI/UX Review), or test the pipeline.

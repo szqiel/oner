@@ -21,6 +21,8 @@ async function execute(runId, prompt) {
 
     const apiKey = process.env.BLUESMINDS_API_KEY || '';
     const baseUrl = process.env.BLUESMINDS_API_BASE_URL || 'https://api.bluesminds.com/v1';
+    
+    const feedback = currentContext?.review?.passed === false ? currentContext.review.feedback : "None";
 
     return new Promise((resolve, reject) => {
         const pythonProcess = spawn('python', [
@@ -29,7 +31,8 @@ async function execute(runId, prompt) {
             JSON.stringify(blueprint),
             modelName,
             apiKey,
-            baseUrl
+            baseUrl,
+            feedback
         ]);
 
         let payload = '';

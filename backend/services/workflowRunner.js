@@ -2,6 +2,7 @@ const bandState = require('./bandState');
 const librarian = require('../agents/librarian');
 const gambit = require('../agents/gambit');
 const kuli = require('../agents/kuli');
+const catalyst = require('../agents/catalyst');
 const glassion = require('../agents/glassion');
 
 /**
@@ -49,31 +50,58 @@ async function runSwarm(runId) {
         
         await bandState.updateRunStatus(runId, 'PLAN_LOCKED');
 
-        // 3. Kuli (AutoGen/CrewAI Coding) & Glassion (Native QA)
-        // Note: For hackathon MVP we do a straight pass. In reality this loops.
-        await bandState.updateRunStatus(runId, 'ASSEMBLING');
-        
-        try {
-            await kuli.execute(runId);
-            // Reset failures on success
-            const contextAfterKuli = await bandState.getSharedContext(runId);
-            contextAfterKuli.kuli_failures = 0;
-            await bandState.updateSharedContext(runId, contextAfterKuli);
-        } catch (error) {
-            const context = await bandState.getSharedContext(runId);
-            context.kuli_failures += 1;
-            await bandState.updateSharedContext(runId, context);
+        // 3. Kuli (Coder) & Catalyst (QA) Feedback Loop
+        const MAX_QA_LOOPS = 2;
+        let qaPassed = false;
+        let qaLoopCount = 0;
 
-            if (context.kuli_failures >= 2) {
-                // HitL Escalation Protocol
-                await bandState.updateRunStatus(runId, 'ESCALATED');
-                await bandState.logAgentEvent(runId, 'System', 'ESCALATION', { 
-                    message: 'Kuli failed 2 consecutive times. Escalating to Human-in-the-Loop.' 
-                });
-                return; // Halt workflow
-            } else {
-                throw error; // Re-throw to be caught by the outer catch (or we could loop here)
+        while (!qaPassed && qaLoopCount <= MAX_QA_LOOPS) {
+            await bandState.updateRunStatus(runId, 'ASSEMBLING');
+            try {
+                // Pass "Execute Prompt" assuming workflowRunner gets the real prompt elsewhere, 
+                // but actually Kuli reads the blueprint from state.
+                await kuli.execute(runId, 'Execute Prompt');
+                
+                const contextAfterKuli = await bandState.getSharedContext(runId);
+                contextAfterKuli.kuli_failures = 0;
+                await bandState.updateSharedContext(runId, contextAfterKuli);
+
+                // Run Catalyst QA
+                await bandState.updateRunStatus(runId, 'CODE_REVIEW');
+                const reviewData = await catalyst.execute(runId);
+
+                if (reviewData.passed) {
+                    qaPassed = true;
+                } else {
+                    qaLoopCount++;
+                    if (qaLoopCount <= MAX_QA_LOOPS) {
+                        await bandState.logAgentEvent(runId, 'System', 'INFO', { message: `Catalyst rejected code. Looping back to Kuli (Attempt ${qaLoopCount}/${MAX_QA_LOOPS})...` });
+                    }
+                }
+
+            } catch (error) {
+                const context = await bandState.getSharedContext(runId);
+                context.kuli_failures = (context.kuli_failures || 0) + 1;
+                await bandState.updateSharedContext(runId, context);
+
+                if (context.kuli_failures >= 2) {
+                    await bandState.updateRunStatus(runId, 'ESCALATED');
+                    await bandState.logAgentEvent(runId, 'System', 'ESCALATION', { 
+                        message: 'Kuli failed 2 consecutive times. Escalating to Human-in-the-Loop.' 
+                    });
+                    return; // Halt workflow
+                } else {
+                    // Try again in the loop? Actually, let's just break out and fail if it's a fatal spawn error, 
+                    // but for HitL we want to wait. Wait, if kuli_failures < 2, we just loop again.
+                    await bandState.logAgentEvent(runId, 'System', 'WARNING', { message: 'Kuli crashed. Retrying...' });
+                }
             }
+        }
+
+        if (!qaPassed) {
+            await bandState.updateRunStatus(runId, 'ESCALATED');
+            await bandState.logAgentEvent(runId, 'System', 'ESCALATION', { message: 'Catalyst QA failed after max retries. Escalating to Human-in-the-Loop.' });
+            return;
         }
 
         // 4. Glassion Visual QA
