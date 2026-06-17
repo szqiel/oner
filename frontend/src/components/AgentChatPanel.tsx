@@ -60,11 +60,15 @@ export default function AgentChatPanel({ messages, onSendMessage }: AgentChatPan
 
   return (
     <motion.div 
-      className="glass-panel w-96 max-h-[80vh] flex flex-col overflow-hidden animate-[spring-up_0.6s_forwards]"
+      className="relative w-96 max-h-[80vh] flex flex-col animate-[spring-up_0.6s_forwards]"
       style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Spinning Edge Glow */}
+      <div className="absolute -inset-[1px] rounded-[1.5rem] opacity-70 bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(255,255,255,0.8)_360deg)] animate-border-spin -z-10"></div>
+      
+      <div className="glass-panel flex flex-col overflow-hidden h-full w-full bg-[#050505]/80">
       {/* Header */}
       <div className="px-4 py-3 border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
         <h3 className="font-semibold text-sm tracking-wide">Oner Swarm (Band)</h3>
@@ -107,6 +111,7 @@ export default function AgentChatPanel({ messages, onSendMessage }: AgentChatPan
             Send
           </button>
         </form>
+      </div>
       </div>
     </motion.div>
   );

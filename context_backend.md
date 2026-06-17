@@ -70,4 +70,14 @@
     *   Implemented `agents/gambit.js` using `VectorStoreIndex` and `SimpleDirectoryReader` to perform RAG over the design guidelines. Gambit outputs a strict JSON blueprint which is pushed to `shared_context.blueprint`.
 *   **What went wrong / Issues faced:** 
     *   No issues faced. The LlamaIndex integration went smoothly.
-*   **Next Steps:** Proceed to implement Kuli (AutoGen/CrewAI Python Bridge) or finalize testing of the Node.js agent loop.
+### [2026-06-18] - Kuli (Python AutoGen Bridge) Implementation
+*   **What was done:** 
+    *   Created `backend/python/requirements.txt` with `pyautogen`.
+    *   Implemented `backend/python/kuli_agent.py` to initialize an AutoGen `AssistantAgent` using the dynamically assigned model, API key, and base URL passed from Node.js.
+    *   Configured the script to generate pure HTML/Tailwind/Vanilla JS and print it to stdout.
+    *   Implemented the Node.js bridge in `backend/agents/kuli.js` using `child_process.spawn('python', [...])`.
+    *   Wired `kuli.js` to extract the HTML payload from stdout, strip markdown, and post it to `shared_context.html` on Supabase.
+    *   Wired `stderr` to throw errors to trigger the HitL protocol in `workflowRunner.js`.
+*   **What went wrong / Issues faced:** 
+    *   Minor regex cleanup needed to ensure AutoGen doesn't accidentally wrap the stdout in markdown code blocks.
+*   **Next Steps:** Proceed to implement Catalyst/Glassion, or tell the user to test the entire pipeline locally.

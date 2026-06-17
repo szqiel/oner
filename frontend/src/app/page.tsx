@@ -49,8 +49,8 @@ export default function Home() {
         style={{
           background: useMotionTemplate`
             radial-gradient(
-              650px circle at ${mouseX}px ${mouseY}px,
-              rgba(255,255,255,0.05),
+              300px circle at ${mouseX}px ${mouseY}px,
+              rgba(255,255,255,0.06),
               transparent 80%
             )
           `,
