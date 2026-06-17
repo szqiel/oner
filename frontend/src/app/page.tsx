@@ -10,7 +10,7 @@ const MOCK_MESSAGES: BandMessage[] = [
     agent: 'The Librarian',
     framework: 'LangChain',
     action: 'Task Received',
-    content: 'Analyzing prompt: "Build a cinematic shotlist application for a production house." Assigning models...',
+    content: 'Analyzing prompt: "Build a high-performance, modern dashboard application." Assigning models...',
     timestamp: '10:00:01 AM',
   },
   {
@@ -48,8 +48,8 @@ const MOCK_HTML = `
       </style>
     </head>
     <body class="flex flex-col items-center justify-center h-screen bg-[#050505]">
-      <h1 class="text-5xl font-bold mb-4 tracking-tighter text-white">Oner Shotlist</h1>
-      <p class="text-lg text-gray-400 max-w-lg text-center">A cinematic production tool orchestrated entirely by a cross-framework autonomous swarm.</p>
+      <h1 class="text-5xl font-bold mb-4 tracking-tighter text-white">Oner Dashboard</h1>
+      <p class="text-lg text-gray-400 max-w-lg text-center">An enterprise software application orchestrated entirely by a cross-framework autonomous swarm.</p>
       <button class="mt-8 px-6 py-2 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition">Get Started</button>
     </body>
   </html>
