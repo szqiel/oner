@@ -73,10 +73,7 @@
     *   Explicitly assigned different agent frameworks (LangChain, LlamaIndex, AutoGen, Native) to different agents in the roster to mathematically fulfill the "Cross-Framework" challenge requirement.
     *   Cemented Band as the absolute required collaboration layer for state and task handoff.
 *   **Next Steps:** Wait for user approval on the `implementation_plan.md` artifact to begin scaffolding.
-<<<<<<< HEAD
 
-=======
->>>>>>> back
 ### [2026-06-17] - Repository Initialization
 *   **What was done:** 
     *   Successfully executed the `implementation_plan.md`.
@@ -93,9 +90,7 @@
     *   **This Agent** is now strictly assigned to the `/frontend` Next.js Dashboard (Continuous Shot UI, Glassmorphism, Iframe).
     *   A **Separate Agent** will handle the `/backend` Codeband Node.js orchestration.
     *   We will use this `context.md` file and shared interface files (like Supabase schemas) to "catch up" and stay synced.
-<<<<<<< HEAD
-*   **Next Steps:** Create the `implementation_plan.md` for the Next.js Frontend UI layout.
-=======
+
 *   **Next Steps:** Wait for the backend agent to finish the Codeband orchestration so we can test the full pipeline.
 
 ### [2026-06-18] - Frontend Supabase Integration
@@ -106,4 +101,12 @@
     *   The `AgentChatPanel` now dynamically animates new `agent_events` as they are inserted.
     *   The `LivePreview` iframe instantly injects HTML when the `runs` table is updated with `shared_context.html`.
 *   **Next Steps:** Await user testing with valid Supabase keys.
->>>>>>> back
+
+### [2026-06-18] - AI Chat Landing Transition
+*   **What was done:** 
+    *   Restructured the UI to start with a sleek, ChatGPT-style landing screen.
+    *   Renamed the original layout to `Dashboard.tsx`.
+    *   Created a new master `page.tsx` that manages the state transition.
+    *   Used `framer-motion` to smoothly fade out the landing screen and fade in the Continuous Shot dashboard when the user submits a prompt.
+    *   Wired the prompt submission to hit `POST /api/start` on the backend.
+*   **Next Steps:** Test the full frontend-to-backend pipeline locally.
