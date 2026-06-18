@@ -33,11 +33,12 @@ export default function LandingScreen({ onSubmit }: LandingScreenProps) {
 
         <form 
           onSubmit={handleSubmit}
-          className="w-full relative group"
+          className="w-full relative group rounded-2xl overflow-hidden p-[1px]"
         >
-          <div className="absolute -inset-1 bg-gradient-to-r from-white/10 to-white/5 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+          {/* Aceternity Spinning Border */}
+          <span className="absolute inset-[-1000%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,rgba(255,255,255,0.8)_50%,transparent_100%)] opacity-40 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none" />
           
-          <div className="relative flex items-center bg-[#111111] border border-white/10 rounded-2xl p-2 shadow-2xl transition-all duration-300 focus-within:border-white/30 focus-within:bg-[#151515]">
+          <div className="relative z-10 flex items-center w-full rounded-[calc(1rem-1px)] p-2 shadow-2xl transition-all duration-300" style={{ backgroundColor: '#111111' }}>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}

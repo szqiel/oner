@@ -17,7 +17,7 @@ async function execute(runId, prompt) {
         throw new Error("Missing architectural blueprint from Gambit.");
     }
 
-    await bandState.logAgentEvent(runId, 'Kuli', 'INFO', { message: `Initializing AutoGen using ${modelName} to generate code based on blueprint...` });
+    await bandState.logAgentEvent(runId, 'Kuli', 'INFO', { message: `Thanks Gambit! I'm firing up AutoGen and starting to write the HTML and Tailwind code now...` });
 
     const apiKey = process.env.BLUESMINDS_API_KEY || '';
     const baseUrl = process.env.BLUESMINDS_API_BASE_URL || 'https://api.bluesminds.com/v1';
@@ -60,7 +60,7 @@ async function execute(runId, prompt) {
             payload = payload.replace(/```html/g, '').replace(/```/g, '').trim();
 
             await bandState.updateSharedContext(runId, { ...currentContext, html: payload });
-            await bandState.logAgentEvent(runId, 'Kuli', 'CODE_GENERATED', { length: payload.length });
+            await bandState.logAgentEvent(runId, 'Kuli', 'CODE_GENERATED', { message: `I've finished writing the code! It looks clean. Handing it over to Catalyst for QA.` });
             
             resolve();
         });

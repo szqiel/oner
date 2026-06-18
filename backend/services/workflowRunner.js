@@ -1,6 +1,7 @@
 const bandState = require('./bandState');
 const librarian = require('../agents/librarian');
 const gambit = require('../agents/gambit');
+const crucible = require('../agents/crucible');
 const kuli = require('../agents/kuli');
 const catalyst = require('../agents/catalyst');
 const glassion = require('../agents/glassion');
@@ -19,7 +20,7 @@ async function initializeRun(prompt) {
 async function resumeRun(runId, updatedState) {
     await bandState.updateSharedContext(runId, updatedState);
     await bandState.updateRunStatus(runId, 'RESUMED');
-    await bandState.logAgentEvent(runId, 'System', 'HITL_RESUME', { message: 'Workflow resumed by Lead Developer.' });
+    await bandState.logAgentEvent(runId, 'Codeband Orchestrator', 'HITL_RESUME', { message: `Lead Developer has intervened. Resuming the swarm workflow now!` });
 }
 
 /**
@@ -44,10 +45,34 @@ async function runSwarm(runId) {
         // We simulate fetching the original prompt from the DB here:
         await librarian.execute(runId, 'Execute Prompt');
 
-        // 2. Gambit (LlamaIndex Planning)
-        await bandState.updateRunStatus(runId, 'PLANNING');
-        await gambit.execute(runId, 'Execute Prompt');
+        // 2. Gambit (LlamaIndex Planning) & Crucible (Native Plan Review) Feedback Loop
+        const MAX_PLAN_LOOPS = 2;
+        let planPassed = false;
+        let planLoopCount = 0;
+
+        while (!planPassed && planLoopCount <= MAX_PLAN_LOOPS) {
+            await bandState.updateRunStatus(runId, 'PLANNING');
+            await gambit.execute(runId, 'Execute Prompt');
+            
+            // Run Crucible Plan Review
+            const planReview = await crucible.execute(runId, 'Execute Prompt');
+            
+            if (planReview.approved) {
+                planPassed = true;
+            } else {
+                planLoopCount++;
+                if (planLoopCount <= MAX_PLAN_LOOPS) {
+                    await bandState.logAgentEvent(runId, 'Codeband Orchestrator', 'INFO', { message: `Crucible rejected the blueprint. Sending feedback back to Gambit (Attempt ${planLoopCount}/${MAX_PLAN_LOOPS}).` });
+                }
+            }
+        }
         
+        if (!planPassed) {
+            await bandState.updateRunStatus(runId, 'ESCALATED');
+            await bandState.logAgentEvent(runId, 'Codeband Orchestrator', 'ESCALATION', { message: `Crucible rejected the blueprint repeatedly. I'm escalating this to the Lead Developer.` });
+            return;
+        }
+
         await bandState.updateRunStatus(runId, 'PLAN_LOCKED');
 
         // 3. Kuli (Coder) & Catalyst (QA) Feedback Loop
@@ -75,7 +100,7 @@ async function runSwarm(runId) {
                 } else {
                     qaLoopCount++;
                     if (qaLoopCount <= MAX_QA_LOOPS) {
-                        await bandState.logAgentEvent(runId, 'System', 'INFO', { message: `Catalyst rejected code. Looping back to Kuli (Attempt ${qaLoopCount}/${MAX_QA_LOOPS})...` });
+                        await bandState.logAgentEvent(runId, 'Codeband Orchestrator', 'INFO', { message: `Catalyst rejected the code. Sending it back to Kuli for another pass (Attempt ${qaLoopCount}/${MAX_QA_LOOPS}).` });
                     }
                 }
 
@@ -86,21 +111,21 @@ async function runSwarm(runId) {
 
                 if (context.kuli_failures >= 2) {
                     await bandState.updateRunStatus(runId, 'ESCALATED');
-                    await bandState.logAgentEvent(runId, 'System', 'ESCALATION', { 
-                        message: 'Kuli failed 2 consecutive times. Escalating to Human-in-the-Loop.' 
+                    await bandState.logAgentEvent(runId, 'Codeband Orchestrator', 'ESCALATION', { 
+                        message: `Kuli crashed 2 consecutive times. Escalating this up to the Lead Developer (Human-in-the-Loop).` 
                     });
                     return; // Halt workflow
                 } else {
                     // Try again in the loop? Actually, let's just break out and fail if it's a fatal spawn error, 
                     // but for HitL we want to wait. Wait, if kuli_failures < 2, we just loop again.
-                    await bandState.logAgentEvent(runId, 'System', 'WARNING', { message: 'Kuli crashed. Retrying...' });
+                    await bandState.logAgentEvent(runId, 'Codeband Orchestrator', 'WARNING', { message: `Whoops, Kuli's python process crashed. Let me restart that...` });
                 }
             }
         }
 
         if (!qaPassed) {
             await bandState.updateRunStatus(runId, 'ESCALATED');
-            await bandState.logAgentEvent(runId, 'System', 'ESCALATION', { message: 'Catalyst QA failed after max retries. Escalating to Human-in-the-Loop.' });
+            await bandState.logAgentEvent(runId, 'Codeband Orchestrator', 'ESCALATION', { message: `Catalyst QA failed repeatedly. I'm escalating this to the Lead Developer.` });
             return;
         }
 
@@ -110,12 +135,12 @@ async function runSwarm(runId) {
 
         // Workflow Complete
         await bandState.updateRunStatus(runId, 'COMPLETED');
-        await bandState.logAgentEvent(runId, 'System', 'WORKFLOW_COMPLETE', { message: 'Swarm execution finished successfully.' });
+        await bandState.logAgentEvent(runId, 'Codeband Orchestrator', 'WORKFLOW_COMPLETE', { message: `And we are done! The entire swarm execution finished successfully. Great job team.` });
 
     } catch (error) {
         console.error(`Swarm error on run ${runId}:`, error);
         await bandState.updateRunStatus(runId, 'FAILED');
-        await bandState.logAgentEvent(runId, 'System', 'FATAL_ERROR', { error: error.message });
+        await bandState.logAgentEvent(runId, 'Codeband Orchestrator', 'FATAL_ERROR', { message: `Fatal error occurred in the swarm: ${error.message}` });
     }
 }
 

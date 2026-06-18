@@ -17,7 +17,7 @@ async function execute(runId) {
         throw new Error("Catalyst cannot review: No HTML code found in context.");
     }
 
-    await bandState.logAgentEvent(runId, 'Catalyst', 'INFO', { message: 'Analyzing Kuli\'s generated code for errors and constraints...' });
+    await bandState.logAgentEvent(runId, 'Catalyst', 'INFO', { message: `I'm on it! Let me review Kuli's code to make sure it matches the blueprint without any syntax errors...` });
     
     // We use a strong model for review, e.g., gpt-4o
     const llm = getLLM('gpt-4o');
@@ -64,9 +64,9 @@ Blueprint Constraints:
         await bandState.updateSharedContext(runId, { ...currentContext, review: reviewData });
         
         if (reviewData.passed) {
-            await bandState.logAgentEvent(runId, 'Catalyst', 'QA_PASSED', { message: 'Code passed QA review.' });
+            await bandState.logAgentEvent(runId, 'Catalyst', 'QA_PASSED', { message: `Code looks solid. Nice work, Kuli! LGTM.` });
         } else {
-            await bandState.logAgentEvent(runId, 'Catalyst', 'QA_FAILED', { feedback: reviewData.feedback });
+            await bandState.logAgentEvent(runId, 'Catalyst', 'QA_FAILED', { message: `Found a few issues, Kuli. Please fix this: ${reviewData.feedback}` });
         }
 
         return reviewData;

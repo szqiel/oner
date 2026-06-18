@@ -9,7 +9,7 @@ const bandState = require('../services/bandState');
  * Evaluates the user prompt and assigns models.
  */
 async function execute(runId, prompt) {
-    await bandState.logAgentEvent(runId, 'Librarian', 'INFO', { message: 'Analyzing prompt for model routing using gpt-5-nano...' });
+    await bandState.logAgentEvent(runId, 'The Librarian', 'ROUTING', { message: `I'll take a look at the requirements! Routing this prompt to Gambit, Kuli, Catalyst, and Glassion now...` });
     
     // 1. Initialize the LLM (using user-requested gpt-5-nano)
     const llm = getLLM('gpt-5-nano');
@@ -54,7 +54,7 @@ Prompt: {prompt}
         const currentContext = await bandState.getSharedContext(runId);
         await bandState.updateSharedContext(runId, { ...currentContext, routing: routingData });
         
-        await bandState.logAgentEvent(runId, 'Librarian', 'ROUTING_COMPLETE', { routing: routingData });
+        await bandState.logAgentEvent(runId, 'The Librarian', 'ROUTING_COMPLETE', { message: `All set. I've routed the tasks based on the required frameworks. Gambit, you're up next for the architectural blueprint!` });
 
     } catch (error) {
         console.error("Librarian LangChain Error:", error);

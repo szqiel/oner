@@ -126,4 +126,5 @@
     *   Added 3D Parallax Tilt to the `AgentChatPanel` using `useSpring` and `useTransform` to rotate the panel dynamically as the mouse hovers over it.
     *   Injected custom CSS keyframes (`text-shimmer`, `border-spin`) into `globals.css`.
     *   Applied the animated text shimmer to the Oner H1 logo and an animated conic-gradient rotating border to the prompt input field.
+    *   (Update) Fixed the `AgentChatPanel` and `LandingScreen` CSS to ensure the rotating light perfectly traces the 1px edge (Google Stitch style) by utilizing centered container masks and opaque backgrounds.
 *   **Next Steps:** Wait for backend agent integration.

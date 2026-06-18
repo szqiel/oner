@@ -88,4 +88,20 @@
     *   If Catalyst fails after 3 total Kuli generation attempts, the orchestrator halts and triggers the `ESCALATED` Human-in-the-Loop protocol.
 *   **What went wrong / Issues faced:** 
     *   No issues faced. The architecture smoothly supported adding the loop.
-*   **Next Steps:** Proceed to implement Glassion (Multimodal UI/UX Review), or test the pipeline.
+### [2026-06-18] - Glassion (Native Multimodal) Implementation
+*   **What was done:** 
+    *   Installed `playwright` and Chromium binaries to act as our headless renderer.
+    *   Implemented `backend/agents/glassion.js` to render Kuli's generated HTML inside Playwright and take a full-page base64 screenshot.
+    *   Constructed an OpenAI-compatible Vision payload and executed it using a native Node.js `fetch` request to the Bluesminds API, strictly fulfilling the "Native JS Multimodal" requirement.
+    *   Wired it to output a JSON object evaluating aesthetic guidelines (e.g., glassmorphism execution) and update `shared_context.ux_review`.
+    *   If Glassion fails the UX review, it intentionally throws an error to escalate to the Human-in-the-Loop state (since the Hackathon MVP doesn't loop aesthetics back to Kuli).
+*   **What went wrong / Issues faced:** 
+    *   No issues faced. Native fetch worked perfectly for the Multimodal payload.
+### [2026-06-18] - Crucible (Native Plan Review) Implementation
+*   **What was done:** 
+    *   Added `backend/agents/crucible.js` to natively invoke the Bluesminds API to review the LlamaIndex-generated blueprint.
+    *   Wired Gambit (`backend/agents/gambit.js`) to accept feedback from Crucible and rewrite the blueprint if rejected.
+    *   Updated `services/workflowRunner.js` to create the second autonomous feedback loop: Gambit <-> Crucible, completing the full PRD loop requirement.
+*   **What went wrong / Issues faced:** 
+    *   Initially missed Crucible during the first architectural breakdown, but the user caught it. Implementation was straightforward using the native `fetch` pattern.
+*   **Next Steps:** Wait for the Lead Developer (user) to run the end-to-end hackathon workflow test.
