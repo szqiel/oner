@@ -26,13 +26,47 @@ CREATE TABLE public.agent_events (
 );
 
 -- Realtime Setup
--- Enable realtime for both tables so the Next.js frontend can animate the dashboard
-BEGIN;
-  DROP PUBLICATION IF EXISTS supabase_realtime;
-  CREATE PUBLICATION supabase_realtime;
-COMMIT;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.runs;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_events;
+-- Enable realtime for both tables safely and idempotently without dropping other tables
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        CREATE PUBLICATION supabase_realtime;
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_rel pr 
+        JOIN pg_class c ON pr.prrelid = c.oid 
+        JOIN pg_publication p ON pr.prpubid = p.oid 
+        WHERE p.pubname = 'supabase_realtime' AND c.relname = 'runs'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.runs;
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_rel pr 
+        JOIN pg_class c ON pr.prrelid = c.oid 
+        JOIN pg_publication p ON pr.prpubid = p.oid 
+        WHERE p.pubname = 'supabase_realtime' AND c.relname = 'agent_events'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_events;
+    END IF;
+END $$;
+
+-- Enable RLS (Row Level Security)
+ALTER TABLE public.runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agent_events ENABLE ROW LEVEL SECURITY;
+
+-- Allow anonymous read-only access for the frontend dashboard
+DROP POLICY IF EXISTS "Allow public select on runs" ON public.runs;
+CREATE POLICY "Allow public select on runs" ON public.runs
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public select on agent_events" ON public.agent_events;
+CREATE POLICY "Allow public select on agent_events" ON public.agent_events
+    FOR SELECT USING (true);
 
 -- Auto-update updated_at timestamp on runs
 CREATE OR REPLACE FUNCTION update_modified_column()
@@ -43,6 +77,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_runs_modtime ON public.runs;
 CREATE TRIGGER update_runs_modtime
 BEFORE UPDATE ON public.runs
 FOR EACH ROW EXECUTE PROCEDURE update_modified_column();

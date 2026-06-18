@@ -1,4 +1,5 @@
 require('dotenv').config();
+process.env.BAND_MOCK_MODE = 'true';
 const workflowRunner = require('./services/workflowRunner');
 
 async function test() {

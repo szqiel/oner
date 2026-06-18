@@ -1,4 +1,6 @@
 const bandState = require('../services/bandState');
+const { getProviderConfig } = require('../lib/provider');
+const { formatBlueprint } = require('../lib/llm');
 
 /**
  * Crucible (Native Node.js Plan Reviewer)
@@ -15,12 +17,10 @@ async function execute(runId, prompt) {
 
     await bandState.logAgentEvent(runId, 'Crucible', 'INFO', { message: `Let me take a look at Gambit's drafted blueprint using ${modelName}...` });
 
-    const apiKey = process.env.BLUESMINDS_API_KEY || '';
-    const baseUrl = process.env.BLUESMINDS_API_BASE_URL || 'https://api.bluesminds.com/v1';
+    const provider = getProviderConfig();
 
     const payload = {
         model: modelName,
-        response_format: { type: "json_object" },
         messages: [
             {
                 role: "system",
@@ -31,25 +31,36 @@ Output strictly a JSON object with two keys: \`approved\` (boolean) and \`feedba
             },
             {
                 role: "user",
-                content: `Original Prompt: ${prompt}\n\nDrafted Blueprint:\n${JSON.stringify(blueprint, null, 2)}`
+                content: `Original Prompt: ${prompt}\n\nDrafted Blueprint:\n${formatBlueprint(blueprint)}`
             }
         ],
         temperature: 0.1
     };
 
     try {
-        const response = await fetch(`${baseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`Crucible API error: ${response.status} - ${errText}`);
+        let response;
+        const maxRetries = 3;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                response = await fetch(`${provider.baseURL}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${provider.apiKey}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) break;
+                const errText = await response.text();
+                console.warn(`[Crucible Attempt ${attempt}] failed: ${response.status} - ${errText}`);
+                if (attempt === maxRetries) {
+                    throw new Error(`Crucible API error: ${response.status} - ${errText}`);
+                }
+            } catch (err) {
+                if (attempt === maxRetries) throw err;
+                console.warn(`[Crucible Attempt ${attempt}] error: ${err.message}`);
+            }
+            await new Promise(res => setTimeout(res, 3000 * attempt));
         }
 
         const data = await response.json();

@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const bandState = require('../services/bandState');
+const { getProviderConfig } = require('../lib/provider');
 
 /**
  * Glassion (Native Multimodal UI/UX Reviewer)
@@ -8,7 +9,7 @@ const bandState = require('../services/bandState');
 async function execute(runId) {
     const currentContext = await bandState.getSharedContext(runId);
     const htmlCode = currentContext?.html;
-    const modelName = currentContext?.routing?.glassion_model || 'claude-3-5-sonnet';
+    const modelName = currentContext?.routing?.glassion_model || 'gpt-4o';
 
     if (!htmlCode) {
         throw new Error("Glassion cannot review: No HTML code found in context.");
@@ -36,12 +37,10 @@ async function execute(runId) {
     // 2. Native fetch to Vision API
     await bandState.logAgentEvent(runId, 'Glassion', 'INFO', { message: `Got the screenshot. Checking if the glassmorphism and padding match modern standards...` });
     
-    const apiKey = process.env.BLUESMINDS_API_KEY || '';
-    const baseUrl = process.env.BLUESMINDS_API_BASE_URL || 'https://api.bluesminds.com/v1';
+    const provider = getProviderConfig();
 
     const payload = {
         model: modelName,
-        response_format: { type: "json_object" },
         messages: [
             {
                 role: "system",
@@ -59,18 +58,29 @@ async function execute(runId) {
     };
 
     try {
-        const response = await fetch(`${baseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`Vision API error: ${response.status} - ${errText}`);
+        let response;
+        const maxRetries = 3;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                response = await fetch(`${provider.baseURL}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${provider.apiKey}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) break;
+                const errText = await response.text();
+                console.warn(`[Glassion Attempt ${attempt}] failed: ${response.status} - ${errText}`);
+                if (attempt === maxRetries) {
+                    throw new Error(`Vision API error: ${response.status} - ${errText}`);
+                }
+            } catch (err) {
+                if (attempt === maxRetries) throw err;
+                console.warn(`[Glassion Attempt ${attempt}] error: ${err.message}`);
+            }
+            await new Promise(res => setTimeout(res, 3000 * attempt));
         }
 
         const data = await response.json();
@@ -91,9 +101,8 @@ async function execute(runId) {
             await bandState.logAgentEvent(runId, 'Glassion', 'UX_APPROVED', { message: `Aesthetics are flawless! Clean glassmorphism and perfect contrast. Outstanding work, everyone!` });
             return reviewData;
         } else {
-            // Glassion failure triggers HitL (it doesn't loop back to Kuli for UX issues in MVP)
-            await bandState.logAgentEvent(runId, 'Glassion', 'UX_FAILED', { message: `We have some aesthetic issues here: ${reviewData.feedback}. Sending this to the human lead developer for review.` });
-            throw new Error(`UX failed review: ${reviewData.feedback}`);
+            await bandState.logAgentEvent(runId, 'Glassion', 'UX_FAILED', { message: `I found visual issues: ${reviewData.feedback}. Kuli, please revise the interface.` });
+            return reviewData;
         }
 
     } catch (error) {

@@ -1,33 +1,32 @@
-const { OpenAI, OpenAIEmbedding, Settings } = require('llamaindex');
+const { Settings } = require('llamaindex');
+const { OpenAI } = require('@llamaindex/openai');
+const { getProviderConfig } = require('./provider');
 require('dotenv').config();
 
 /**
  * Configures the global LlamaIndex Settings to use our selected model and custom API endpoint (Bluesminds).
  */
 function configureLlamaIndex(modelName) {
-    const apiKey = process.env.BLUESMINDS_API_KEY || 'placeholder_key';
-    const baseURL = process.env.BLUESMINDS_API_BASE_URL || 'https://api.bluesminds.com/v1';
+    const provider = getProviderConfig();
 
     const llm = new OpenAI({
         model: modelName,
-        apiKey: apiKey,
+        apiKey: provider.apiKey,
         additionalSessionOptions: {
-            baseURL: baseURL
+            baseURL: provider.baseURL
         }
     });
 
-    // Configure the embedding model. Even though we are querying a local file, LlamaIndex needs to embed the query.
-    // If the custom API provider does not support text-embedding-ada-002, this might need to be changed to a supported embedding model.
-    const embedModel = new OpenAIEmbedding({
-        model: 'text-embedding-ada-002',
-        apiKey: apiKey,
-        additionalSessionOptions: {
-            baseURL: baseURL
-        }
-    });
+    const { BaseEmbedding } = require('llamaindex');
+    class DummyEmbedding extends BaseEmbedding {
+        async getTextEmbedding(text) { return [0]; }
+        async getQueryEmbedding(query) { return [0]; }
+    }
+    const embedModel = new DummyEmbedding();
 
     Settings.llm = llm;
     Settings.embedModel = embedModel;
+    return llm;
 }
 
 module.exports = { configureLlamaIndex };

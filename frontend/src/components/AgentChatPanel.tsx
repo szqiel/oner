@@ -15,9 +15,10 @@ export interface BandMessage {
 interface AgentChatPanelProps {
   messages: BandMessage[];
   onSendMessage: (msg: string) => void;
+  status: string;
 }
 
-export default function AgentChatPanel({ messages, onSendMessage }: AgentChatPanelProps) {
+export default function AgentChatPanel({ messages, onSendMessage, status }: AgentChatPanelProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +69,10 @@ export default function AgentChatPanel({ messages, onSendMessage }: AgentChatPan
       {/* Header */}
       <div className="px-4 py-3 border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
         <h3 className="font-semibold text-sm tracking-wide">Oner Swarm (Band)</h3>
-        <p className="text-xs opacity-50 mt-1">Cross-Framework Orchestration Live</p>
+        <div className="flex items-center gap-2 text-xs opacity-60 mt-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>{status.replaceAll('_', ' ')}</span>
+        </div>
       </div>
 
       {/* Messages Feed */}

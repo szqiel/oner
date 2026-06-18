@@ -6,17 +6,37 @@ import AgentChatPanel, { BandMessage } from '@/components/AgentChatPanel';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
-export default function Dashboard() {
+interface DashboardProps {
+  runId: string;
+}
+
+interface AgentEventRow {
+  id: string;
+  run_id: string;
+  agent_name: string;
+  event_type: string;
+  output: string | { message?: string; [key: string]: unknown };
+  created_at: string;
+}
+
+interface RunRow {
+  id: string;
+  status: string;
+  shared_context: { html?: string };
+}
+
+export default function Dashboard({ runId }: DashboardProps) {
   const [messages, setMessages] = useState<BandMessage[]>([]);
   const [htmlContent, setHtmlContent] = useState<string>('');
-  const [runId, setRunId] = useState<string | null>(null);
+  const [status, setStatus] = useState('STARTING');
 
   // Framework mapping helper
   const getFramework = (agentName: string) => {
     const lower = agentName.toLowerCase();
     if (lower.includes('librarian')) return 'LangChain';
     if (lower.includes('gambit')) return 'LlamaIndex';
-    if (lower.includes('kuli')) return 'AutoGen';
+    if (lower.includes('crucible')) return 'Native Node.js';
+    if (lower.includes('kuli')) return 'LlamaIndex';
     if (lower.includes('catalyst')) return 'LangChain';
     if (lower.includes('glassion')) return 'Native Multimodal';
     if (lower.includes('developer')) return 'Human';
@@ -25,7 +45,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Helper to map DB row to our UI interface
-    const mapEventToMessage = (row: any): BandMessage => {
+    const mapEventToMessage = (row: AgentEventRow): BandMessage => {
       let contentString = '';
       if (typeof row.output === 'string') {
         contentString = row.output;
@@ -47,49 +67,47 @@ export default function Dashboard() {
 
     // 1. Fetch initial data (latest run and its events)
     const fetchInitialData = async () => {
-      // Get the most recent run
-      const { data: runs } = await supabase
+      const { data: run, error: runError } = await supabase
         .from('runs')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('id', runId)
+        .single<RunRow>();
 
-      if (runs && runs.length > 0) {
-        const latestRun = runs[0];
-        setRunId(latestRun.id);
-        
-        // If there's html in the shared_context, set it
-        if (latestRun.shared_context && latestRun.shared_context.html) {
-          setHtmlContent(latestRun.shared_context.html);
-        }
+      if (runError) {
+        toast.error(`Could not load this run: ${runError.message}`);
+        return;
+      }
 
-        // Fetch past events for this run
-        const { data: events } = await supabase
-          .from('agent_events')
-          .select('*')
-          .eq('run_id', latestRun.id)
-          .order('created_at', { ascending: true });
+      setStatus(run.status);
+      if (run.shared_context?.html) {
+        setHtmlContent(run.shared_context.html);
+      }
 
-        if (events) {
-          setMessages(events.map(mapEventToMessage));
-        }
+      const { data: events, error: eventsError } = await supabase
+        .from('agent_events')
+        .select('*')
+        .eq('run_id', runId)
+        .order('created_at', { ascending: true });
+
+      if (eventsError) {
+        toast.error(`Could not load agent events: ${eventsError.message}`);
+      } else if (events) {
+        setMessages((events as AgentEventRow[]).map(mapEventToMessage));
       }
     };
 
     fetchInitialData();
 
     // 2. Setup Realtime Subscriptions
-    const channel = supabase.channel('codeband_realtime');
+    const channel = supabase.channel(`oner-run-${runId}`);
 
     // Listen for new agent events (chat messages)
     channel.on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'agent_events' },
+      { event: 'INSERT', schema: 'public', table: 'agent_events', filter: `run_id=eq.${runId}` },
       (payload) => {
-        const newEvent = payload.new;
-        // Only append if it belongs to our active run
+        const newEvent = payload.new as AgentEventRow;
         setMessages((prev) => {
-          // Prevent duplicates if multiple tabs/subscriptions
           if (prev.find(m => m.id === newEvent.id)) return prev;
           return [...prev, mapEventToMessage(newEvent)];
         });
@@ -99,10 +117,11 @@ export default function Dashboard() {
     // Listen for state updates (HTML code generation)
     channel.on(
       'postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'runs' },
+      { event: 'UPDATE', schema: 'public', table: 'runs', filter: `id=eq.${runId}` },
       (payload) => {
-        const updatedRun = payload.new;
-        if (updatedRun.shared_context && updatedRun.shared_context.html) {
+        const updatedRun = payload.new as RunRow;
+        setStatus(updatedRun.status);
+        if (updatedRun.shared_context?.html) {
           setHtmlContent(updatedRun.shared_context.html);
         }
       }
@@ -113,12 +132,9 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [runId]);
 
   const handleSendMessage = async (msg: string) => {
-    if (!runId) return;
-
-    // Instantly show in UI
     const newMessage: BandMessage = {
       id: Date.now().toString(),
       agent: 'Lead Developer',
@@ -129,16 +145,22 @@ export default function Dashboard() {
     };
     setMessages(prev => [...prev, newMessage]);
 
-    // Push to Supabase so the backend agent can pick it up
     try {
-      await supabase.from('agent_events').insert({
-        run_id: runId,
-        agent_name: 'Lead Developer',
-        event_type: 'HitL_INPUT',
-        output: { message: msg }
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+      const response = await fetch(`${backendUrl}/api/resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          runId,
+          updatedState: { human_feedback: msg }
+        })
       });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'The swarm could not resume.');
+      }
     } catch (error) {
-      toast.error('Failed to send message to swarm.');
+      toast.error(error instanceof Error ? error.message : 'Failed to send message to the swarm.');
     }
   };
 
@@ -166,6 +188,7 @@ export default function Dashboard() {
         <AgentChatPanel 
           messages={messages} 
           onSendMessage={handleSendMessage} 
+          status={status}
         />
       </div>
     </main>

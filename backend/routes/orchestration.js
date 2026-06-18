@@ -49,11 +49,6 @@ router.post('/resume', async (req, res) => {
     try {
         // Update the state in Supabase and resume the workflow
         await workflowRunner.resumeRun(runId, updatedState);
-        
-        // Asynchronously resume the swarm
-        workflowRunner.runSwarm(runId).catch(err => {
-            console.error(`Swarm resume ${runId} failed:`, err);
-        });
 
         return res.status(202).json({ message: 'Codeband Swarm resumed', runId });
     } catch (error) {

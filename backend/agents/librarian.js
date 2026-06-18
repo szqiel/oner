@@ -11,8 +11,8 @@ const bandState = require('../services/bandState');
 async function execute(runId, prompt) {
     await bandState.logAgentEvent(runId, 'The Librarian', 'ROUTING', { message: `I'll take a look at the requirements! Routing this prompt to Gambit, Kuli, Catalyst, and Glassion now...` });
     
-    // 1. Initialize the LLM (using user-requested gpt-5-nano)
-    const llm = getLLM('gpt-5-nano');
+    // 1. Initialize the LLM
+    const llm = getLLM('gpt-4o');
 
     // 2. Define the desired output schema using Zod
     const schema = z.object({
@@ -30,10 +30,10 @@ async function execute(runId, prompt) {
 Your job is to analyze the user's prompt and assign the most efficient LLM models to the downstream agents.
 
 Available models to choose from:
-- gpt-4o (High reasoning, good for complex coding or planning)
-- claude-3-5-sonnet (Excellent at visual/UI QA)
-- llama-3-70b-instruct (Fast and efficient for straightforward planning)
-- gpt-5-nano (Fast, lightweight routing/logic)
+- gpt-4o (High reasoning, best for complex coding, planning, and vision QA)
+- gpt-4o-mini (Fast and efficient for simple coding or routing)
+- gpt-5-mini (Highly capable general-purpose model)
+- gpt-5-nano (Fast and lightweight)
 
 Analyze the following prompt and assign the models accordingly.
 Prompt: {prompt}
@@ -45,17 +45,25 @@ Prompt: {prompt}
     });
 
     try {
+        console.log(`[Librarian] Invoking LangChain LLM for prompt: "${prompt}"`);
         // 4. Construct and invoke the chain
         const chain = promptTemplate.pipe(llm).pipe(parser);
         
         const routingData = await chain.invoke({ prompt: prompt });
+        // Enforce gpt-4o for all agents to ensure provider compatibility
+        routingData.gambit_model = 'gpt-4o';
+        routingData.kuli_model = 'gpt-4o';
+        routingData.glassion_model = 'gpt-4o';
+        console.log(`[Librarian] LLM invoke completed. Data:`, JSON.stringify(routingData));
 
         // 5. Update Band State
+        console.log(`[Librarian] Updating bandState...`);
         const currentContext = await bandState.getSharedContext(runId);
         await bandState.updateSharedContext(runId, { ...currentContext, routing: routingData });
         
+        console.log(`[Librarian] Logging event...`);
         await bandState.logAgentEvent(runId, 'The Librarian', 'ROUTING_COMPLETE', { message: `All set. I've routed the tasks based on the required frameworks. Gambit, you're up next for the architectural blueprint!` });
-
+        console.log(`[Librarian] Execution completed successfully.`);
     } catch (error) {
         console.error("Librarian LangChain Error:", error);
         await bandState.logAgentEvent(runId, 'Librarian', 'ERROR', { error: error.message });

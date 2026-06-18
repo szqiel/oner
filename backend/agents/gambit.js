@@ -1,7 +1,7 @@
 const path = require('path');
-const { SimpleDirectoryReader, VectorStoreIndex } = require('llamaindex');
-const bandState = require('../services/bandState');
+const fs = require('fs').promises;
 const { configureLlamaIndex } = require('../lib/llamaIndexLLM');
+const bandState = require('../services/bandState');
 
 /**
  * Gambit (LlamaIndex)
@@ -13,70 +13,77 @@ async function execute(runId, prompt) {
     // Check if there's feedback from Crucible
     const feedback = currentContext?.plan_review?.approved === false ? currentContext.plan_review.feedback : null;
     
-    // Retrieve the model name
-    const modelName = currentContext?.routing?.gambit_model || 'llama-3-70b-instruct';
+    // We enforce gpt-4o because of Bluesminds API compatibility
+    const modelName = 'gpt-4o';
     
     if (feedback) {
         await bandState.logAgentEvent(runId, 'Gambit', 'PLANNING', { message: `Ah, I see. Revising the blueprint now to address your feedback: ${feedback}` });
     } else {
-        await bandState.logAgentEvent(runId, 'Gambit', 'PLANNING', { message: `Got it, boss. Reading our design guidelines right now using RAG. I'll draft the blueprint layout shortly.` });
+        await bandState.logAgentEvent(runId, 'Gambit', 'PLANNING', { message: `Got it, boss. Reading our design guidelines right now. I'll draft the blueprint layout shortly.` });
     }
     
-    // 1. Initialize LlamaIndex LLM Config
-    configureLlamaIndex(modelName);
-
     try {
-        // 2. Load Documents (RAG)
-        const reader = new SimpleDirectoryReader();
-        const documents = await reader.loadData({ directoryPath: path.join(__dirname, '../data') });
-        
-        // 3. Create Vector Index
-        const index = await VectorStoreIndex.fromDocuments(documents);
-        const queryEngine = index.asQueryEngine();
+        // Read design guidelines from data/ directory
+        const guidelinesDir = path.join(__dirname, '../data');
+        const files = await fs.readdir(guidelinesDir);
+        let guidelinesText = '';
+        for (const file of files) {
+            if (file.endsWith('.md') || file.endsWith('.txt')) {
+                const content = await fs.readFile(path.join(guidelinesDir, file), 'utf8');
+                guidelinesText += `\n--- ${file} ---\n${content}\n`;
+            }
+        }
 
-        // 4. Query the index
-        // We instruct the LLM to output pure JSON so we can parse it easily.
-        let query = `
-Based on the design guidelines in the context, and the following user request:
-"${prompt}"
+        const llm = configureLlamaIndex(modelName);
+        const formatInstructions = `Return only JSON with this schema:
+{"framework":"HTML + Tailwind CDN + Vanilla JS","components":["..."],"instructions":["..."]}`;
+
+        let templateString = `
+Based on the following design guidelines:
+{guidelinesText}
+
+And the following user request:
+"{prompt}"
 
 Draft an architectural blueprint for the web application. 
-Your output MUST be a valid JSON object matching this structure exactly (do not wrap in markdown tags):
-{
-  "framework": "HTML/Vanilla JS/Tailwind",
-  "components": ["List of high level UI components required"],
-  "instructions": ["Specific coding instructions or constraints for the coder based on the guidelines"]
-}
+{formatInstructions}
 `;
+
         if (feedback) {
-            query = `
-You previously drafted a blueprint for "${prompt}", but it was rejected with this feedback: "${feedback}".
+            templateString = `
+You previously drafted a blueprint for "{prompt}", but it was rejected with this feedback: "{feedback}".
 Please revise the architectural blueprint to address this feedback while adhering to the design guidelines.
-Your output MUST be a valid JSON object matching this structure exactly (do not wrap in markdown tags):
-{
-  "framework": "HTML/Vanilla JS/Tailwind",
-  "components": ["List of high level UI components required"],
-  "instructions": ["Specific coding instructions or constraints for the coder based on the guidelines"]
-}
+
+Design Guidelines:
+{guidelinesText}
+
+{formatInstructions}
 `;
         }
-        
-        const response = await queryEngine.query({ query });
-        
-        // Try to parse the JSON string from the response
-        let jsonResponse = response.response;
-        // Clean up markdown if the LLM hallucinated it
-        jsonResponse = jsonResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-        
-        const mockBlueprint = JSON.parse(jsonResponse);
 
-        // 5. Update Band State
-        await bandState.updateSharedContext(runId, { ...currentContext, blueprint: mockBlueprint });
+        const formattedPrompt = templateString
+            .replaceAll('{prompt}', prompt)
+            .replaceAll('{guidelinesText}', guidelinesText)
+            .replaceAll('{feedback}', feedback || '')
+            .replaceAll('{formatInstructions}', formatInstructions);
+
+        const response = await llm.complete({ prompt: formattedPrompt });
+        const raw = String(response.text || response.message?.content || response)
+            .replace(/```json/gi, '')
+            .replace(/```/g, '')
+            .trim();
+        const blueprint = JSON.parse(raw);
+        if (!blueprint.framework || !Array.isArray(blueprint.components) || !Array.isArray(blueprint.instructions)) {
+            throw new Error('Gambit returned an invalid blueprint shape.');
+        }
+
+        // Update Band State
+        await bandState.updateSharedContext(runId, { ...currentContext, blueprint });
         
-        await bandState.logAgentEvent(runId, 'Gambit', 'BLUEPRINT_READY', { message: `Alright Kuli, the blueprint is ready and locked in. Everything is structured perfectly. Over to you for the code!` });
+        await bandState.logAgentEvent(runId, 'Gambit', 'BLUEPRINT_READY', { message: `Alright Crucible, the blueprint is ready and locked in. Please review it!` });
 
     } catch (error) {
-        console.error("Gambit LlamaIndex Error:", error);
+        console.error("Gambit Error:", error);
         await bandState.logAgentEvent(runId, 'Gambit', 'ERROR', { error: error.message });
         throw error;
     }

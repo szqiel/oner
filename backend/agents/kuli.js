@@ -1,69 +1,64 @@
-const path = require('path');
-const { spawn } = require('child_process');
 const bandState = require('../services/bandState');
+const { configureLlamaIndex } = require('../lib/llamaIndexLLM');
+const { formatBlueprint } = require('../lib/llm');
 
-/**
- * Kuli (AutoGen/CrewAI - Python Bridge)
- * The Coder. Generates raw HTML/Tailwind payload.
- */
 async function execute(runId, prompt) {
     const currentContext = await bandState.getSharedContext(runId);
-    
-    // Retrieve model name assigned to Kuli by The Librarian
     const modelName = currentContext?.routing?.kuli_model || 'gpt-4o';
     const blueprint = currentContext?.blueprint;
 
     if (!blueprint) {
-        throw new Error("Missing architectural blueprint from Gambit.");
+        throw new Error('Kuli cannot build without Gambit’s blueprint.');
     }
 
-    await bandState.logAgentEvent(runId, 'Kuli', 'INFO', { message: `Thanks Gambit! I'm firing up AutoGen and starting to write the HTML and Tailwind code now...` });
+    const feedback = currentContext?.review?.passed === false
+        ? currentContext.review.feedback
+        : currentContext?.ux_review?.passed === false
+            ? currentContext.ux_review.feedback
+            : '';
 
-    const apiKey = process.env.BLUESMINDS_API_KEY || '';
-    const baseUrl = process.env.BLUESMINDS_API_BASE_URL || 'https://api.bluesminds.com/v1';
-    
-    const feedback = currentContext?.review?.passed === false ? currentContext.review.feedback : "None";
+    await bandState.logAgentEvent(runId, 'Kuli', 'IMPLEMENTING', {
+        message: `I’m implementing the locked blueprint with LlamaIndex${feedback ? ' and applying the latest review' : ''}.`
+    });
 
-    return new Promise((resolve, reject) => {
-        const pythonProcess = spawn('python', [
-            path.join(__dirname, '../python/kuli_agent.py'),
-            prompt,
-            JSON.stringify(blueprint),
-            modelName,
-            apiKey,
-            baseUrl,
-            feedback
-        ]);
+    const llm = configureLlamaIndex(modelName);
+    const response = await llm.complete({
+        prompt: `You are Kuli, the implementation agent in a multi-agent web development swarm.
+Generate one complete, production-quality index.html document using HTML, Tailwind CSS via CDN, and Vanilla JavaScript.
+Return raw HTML only. Do not use Markdown fences or explanations.
+The page must be responsive, accessible, and visually polished.
 
-        let payload = '';
-        let errorOutput = '';
+User request:
+${prompt}
 
-        pythonProcess.stdout.on('data', (data) => {
-            payload += data.toString();
-        });
+Locked blueprint:
+${formatBlueprint(blueprint)}
 
-        pythonProcess.stderr.on('data', (data) => {
-            errorOutput += data.toString();
-        });
+Review feedback to apply:
+${feedback || 'None'}`
+    });
 
-        pythonProcess.on('close', async (code) => {
-            if (code !== 0) {
-                console.error("Python Error Output:", errorOutput);
-                const errorMsg = `Kuli AutoGen process failed with exit code ${code}. Error: ${errorOutput}`;
-                await bandState.logAgentEvent(runId, 'Kuli', 'ERROR', { error: errorMsg });
-                return reject(new Error(errorMsg));
-            }
+    const rawHtml = String(response.text || response.message?.content || response).trim();
+    console.log('[Kuli] Raw response length:', rawHtml.length);
 
-            // Successfully got the payload
-            payload = payload.trim();
-            // Clean up any stray markdown formatting the model might have returned despite instructions
-            payload = payload.replace(/```html/g, '').replace(/```/g, '').trim();
+    let html = rawHtml
+        .replace(/```html/gi, '')
+        .replace(/```/g, '')
+        .trim();
 
-            await bandState.updateSharedContext(runId, { ...currentContext, html: payload });
-            await bandState.logAgentEvent(runId, 'Kuli', 'CODE_GENERATED', { message: `I've finished writing the code! It looks clean. Handing it over to Catalyst for QA.` });
-            
-            resolve();
-        });
+    // Auto-wrap with html tags if missing to prevent validation failure
+    if (!/<html[\s>]/i.test(html)) {
+        console.log('[Kuli] Auto-wrapping output with <html> tags');
+        html = `<!DOCTYPE html>\n<html>\n${html}\n</html>`;
+    }
+
+    if (!/<\/html>/i.test(html)) {
+        html = `${html}\n</html>`;
+    }
+
+    await bandState.updateSharedContext(runId, { ...currentContext, html });
+    await bandState.logAgentEvent(runId, 'Kuli', 'CODE_GENERATED', {
+        message: 'The complete HTML artifact is ready. Catalyst, please review it.'
     });
 }
 

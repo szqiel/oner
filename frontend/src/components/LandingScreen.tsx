@@ -3,16 +3,21 @@ import { motion } from 'framer-motion';
 import { ArrowUp } from 'lucide-react';
 
 interface LandingScreenProps {
-  onSubmit: (prompt: string) => void;
+  onSubmit: (prompt: string) => Promise<void>;
 }
 
 export default function LandingScreen({ onSubmit }: LandingScreenProps) {
   const [prompt, setPrompt] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (prompt.trim()) {
-      onSubmit(prompt);
+    if (!prompt.trim() || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit(prompt.trim());
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -54,10 +59,11 @@ export default function LandingScreen({ onSubmit }: LandingScreenProps) {
             />
             <button
               type="submit"
-              disabled={!prompt.trim()}
+              disabled={!prompt.trim() || isSubmitting}
+              aria-label="Start the Oner swarm"
               className="absolute right-4 bottom-4 p-2 rounded-xl bg-white text-black disabled:opacity-20 disabled:bg-white/10 disabled:text-white disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-all"
             >
-              <ArrowUp className="w-5 h-5" />
+              <ArrowUp className={`w-5 h-5 ${isSubmitting ? 'animate-pulse' : ''}`} />
             </button>
           </div>
         </form>

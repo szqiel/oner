@@ -8,7 +8,7 @@
 
 **Oner** is an autonomous, cross-framework developer swarm packaged as a full-stack web application. Designed to execute software engineering from planning to visual QA in one seamless, continuous workflow (a "oner"), it provides users with a rich Graphical User Interface (GUI) to interact with and monitor the AI agents. 
 
-At the core of Oner is the challenge mandate: **Cross-Framework Collaboration**. Oner utilizes agents built across diverse frameworks (LangChain, LlamaIndex, AutoGen) and unites them through the **Band** collaboration layer. Band serves as the definitive shared state and communication bus, ensuring agents seamlessly delegate work, hand off tasks, and coordinate state without hallucination. 
+At the core of Oner is the challenge mandate: **Cross-Framework Collaboration**. Oner utilizes agents built across diverse frameworks (LangChain, LlamaIndex, Native Node.js) and unites them through the **Band** collaboration layer. Band serves as the definitive shared state and communication bus, ensuring agents seamlessly delegate work, hand off tasks, and coordinate state without hallucination. 
 
 **Strategic API Usage:** During internal development, the swarm routes requests through the **Bluesminds API** to conserve tokens. For the final deployment and hackathon judging timeline, all agents switch to the **AI/ML API**, ensuring maximum reasoning capability and visual QA precision.
 
@@ -45,7 +45,7 @@ To fulfill the *Cross-Framework* challenge requirement, our 6 agents are built u
 | **The Librarian** | **Dispatcher:** Analyzes prompt, assigns efficient LLMs to other agents. | **LangChain** (Routing/Chains) | **AI/ML API** |
 | **Gambit** | **The Planner:** Researches use cases, creates architectural blueprint. | **LlamaIndex** (RAG/Research) | **AI/ML API** |
 | **Crucible** | **Plan Reviewer:** "Forges" the plan, audits Gambit's blueprint. | **Native Node.js / Custom** | **AI/ML API** |
-| **Kuli** | **The Coder:** End-to-end brute-force executor writing HTML/Tailwind. | **AutoGen / CrewAI** | **AI/ML API** |
+| **Kuli** | **The Coder:** End-to-end brute-force executor writing HTML/Tailwind. | **LlamaIndex** | **AI/ML API** |
 | **Catalyst** | **QA & Code Reviewer:** Tests Kuli's code, refactors for efficiency. | **LangChain** | **AI/ML API** |
 | **Glassion** | **UI/UX Inquisitor:** Vision reviewer enforcing *Emil Kowalski* design principles against "AI Slop." Outputs CSS JSON. | **Native Node.js (Multimodal)** | **AI/ML API** |
 
@@ -60,7 +60,7 @@ To fulfill the *Cross-Framework* challenge requirement, our 6 agents are built u
 2. **Crucible (Native)** pulls the state from Band, reviews the draft, and iterates. Once approved, Band state updates to `PLAN_LOCKED`.
 
 ### C. Assembly & Refactoring (The Coding Loop)
-1. **Kuli (AutoGen)** reads `PLAN_LOCKED` from Band, writes the HTML/JS, and posts a changelog.
+1. **Kuli (LlamaIndex)** reads `PLAN_LOCKED` from Band, writes the HTML/JS, and posts a changelog.
 2. **Catalyst (LangChain)** pulls the code from Band, audits for errors/cleanliness, and posts revision instructions back to Band. Kuli revises.
 
 ### D. The Aesthetic Inquisition (Vision QA)
@@ -77,6 +77,6 @@ To optimize tokens and meet the "Meaningful Band usage" requirement:
 * Agents **do not** pass raw code via direct API calls. All state, context sharing, and task delegation happen via structured JSON payloads pushed to **Band**.
 
 ## 7. Hackathon Success Metrics (Judging Criteria Alignment)
-* **Cross-Framework Multi-Agent System (Challenge Rule):** By orchestrating LangChain, LlamaIndex, AutoGen, and Native agents through a single Band collaboration layer, Oner perfectly fulfills the core challenge requirement.
+* **Cross-Framework Multi-Agent System (Challenge Rule):** By orchestrating LangChain, LlamaIndex, and Native agents through a single Band collaboration layer, Oner perfectly fulfills the core challenge requirement.
 * **Meaningful Band Usage:** Band is the absolute backbone of the workflow. Task handoffs (Gambit -> Kuli), state coordination (`PLAN_LOCKED`), and escalation (HitL) are natively driven by Band.
 * **Best Use of AI/ML API:** Utilizing AI/ML API for high-tier reasoning (Librarian) and advanced multimodal vision QA (Glassion).

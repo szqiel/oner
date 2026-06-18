@@ -1,10 +1,12 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Band-native cross-framework orchestration backend for Oner",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test test/orchestration.test.js",
+    "start": "node server.js",
+    "check": "node --check server.js && node --check services/workflowRunner.js && node --check services/bandApi.js"
   },
   "keywords": [],
   "author": "",
@@ -13,13 +15,16 @@
   "dependencies": {
     "@langchain/core": "^1.2.0",
     "@langchain/openai": "^1.5.0",
+    "@llamaindex/openai": "^0.4.22",
     "@supabase/supabase-js": "^2.108.2",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "langchain": "^1.4.6",
     "llamaindex": "^0.12.1",
+    "phoenix": "^1.8.8",
     "playwright": "^1.61.0",
+    "ws": "^8.21.0",
     "zod": "^4.4.3"
   }
 }

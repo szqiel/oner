@@ -70,7 +70,7 @@
 *   **What was done:** 
     *   Reviewed the official hackathon challenge image ("Build a Cross-Framework Multi-Agent System with Band").
     *   Updated the PRD to `v2.0` (Final).
-    *   Explicitly assigned different agent frameworks (LangChain, LlamaIndex, AutoGen, Native) to different agents in the roster to mathematically fulfill the "Cross-Framework" challenge requirement.
+    *   Explicitly assigned different agent frameworks (LangChain, LlamaIndex, Native) to different agents in the roster to mathematically fulfill the "Cross-Framework" challenge requirement.
     *   Cemented Band as the absolute required collaboration layer for state and task handoff.
 *   **Next Steps:** Wait for user approval on the `implementation_plan.md` artifact to begin scaffolding.
 

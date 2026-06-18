@@ -2,41 +2,45 @@
 
 import React, { useState } from 'react';
 import { AnimatePresence, motion, useMotionValue, useMotionTemplate } from 'framer-motion';
+import { toast } from 'sonner';
 import LandingScreen from '@/components/LandingScreen';
 import Dashboard from '@/components/Dashboard';
 
 export default function Home() {
   const [hasStarted, setHasStarted] = useState(false);
+  const [runId, setRunId] = useState<string | null>(null);
 
   // Spotlight logic
-  let mouseX = useMotionValue(0);
-  let mouseY = useMotionValue(0);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
 
   function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
-    let { left, top } = currentTarget.getBoundingClientRect();
+    const { left, top } = currentTarget.getBoundingClientRect();
     mouseX.set(clientX - left);
     mouseY.set(clientY - top);
   }
 
   const handleStart = async (prompt: string) => {
-    // 1. Send the prompt to the backend orchestrator
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-      await fetch(`${backendUrl}/api/start`, {
+      const response = await fetch(`${backendUrl}/api/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ prompt })
       });
+      const data = await response.json();
+      if (!response.ok || !data.runId) {
+        throw new Error(data.error || 'The backend did not create a run.');
+      }
+      setRunId(data.runId);
+      setHasStarted(true);
     } catch (err) {
       console.error('Failed to start swarm:', err);
-      // We proceed with the UI transition even if the network call fails locally
-      // so the user can see the Dashboard layout.
+      toast.error(err instanceof Error ? err.message : 'Failed to start the swarm.');
+      throw err;
     }
-
-    // 2. Trigger the UI transition instantly
-    setHasStarted(true);
   };
 
   return (
@@ -76,7 +80,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="absolute inset-0 z-10"
           >
-            <Dashboard />
+            {runId && <Dashboard runId={runId} />}
           </motion.div>
         )}
       </AnimatePresence>

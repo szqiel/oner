@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { ChatOpenAI } = require('@langchain/openai');
+const { getProviderConfig } = require('./provider');
 
 /**
  * Initializes and returns a ChatOpenAI instance configured for the active API provider.
@@ -8,20 +9,29 @@ const { ChatOpenAI } = require('@langchain/openai');
  * @param {string} modelName - The model to use (e.g. 'gpt-5-nano')
  * @returns {ChatOpenAI}
  */
-function getLLM(modelName = 'gpt-5-nano') {
-    // If AI_ML API is active (production), we would switch this.
-    // But currently we enforce Bluesminds API for development.
-    const apiKey = process.env.BLUESMINDS_API_KEY || 'placeholder_key';
-    const baseURL = process.env.BLUESMINDS_API_BASE_URL || 'https://api.bluesminds.com/v1';
+function getLLM(modelName = 'gpt-4o') {
+    const provider = getProviderConfig();
 
     return new ChatOpenAI({
-        openAIApiKey: apiKey,
+        apiKey: provider.apiKey,
         modelName: modelName,
-        temperature: 0.1, // Low temperature for deterministic routing
+        temperature: 0.1,
         configuration: {
-            baseURL: baseURL,
+            baseURL: provider.baseURL,
         }
     });
 }
 
-module.exports = { getLLM };
+function formatBlueprint(blueprint) {
+    if (!blueprint) return '';
+    const framework = blueprint.framework || 'HTML + Tailwind CDN + Vanilla JS';
+    const components = Array.isArray(blueprint.components) 
+        ? blueprint.components.map(c => `- ${typeof c === 'object' ? JSON.stringify(c) : c}`).join('\n') 
+        : '';
+    const instructions = Array.isArray(blueprint.instructions) 
+        ? blueprint.instructions.map(i => `- ${typeof i === 'object' ? JSON.stringify(i) : i}`).join('\n') 
+        : '';
+    return `Framework: ${framework}\n\nComponents:\n${components}\n\nInstructions:\n${instructions}`;
+}
+
+module.exports = { getLLM, formatBlueprint };

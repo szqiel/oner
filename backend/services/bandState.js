@@ -6,7 +6,7 @@ const supabase = require('../lib/supabase');
 async function createRun(prompt) {
     const { data, error } = await supabase
         .from('runs')
-        .insert([{ prompt, status: 'PENDING', shared_context: {} }])
+        .insert([{ prompt, status: 'PENDING', shared_context: { prompt } }])
         .select()
         .single();
 
@@ -38,6 +38,13 @@ async function updateSharedContext(runId, newContext) {
     if (error) throw new Error(`Failed to update shared context: ${error.message}`);
 }
 
+async function mergeSharedContext(runId, patch) {
+    const currentContext = await getSharedContext(runId);
+    const nextContext = { ...currentContext, ...patch };
+    await updateSharedContext(runId, nextContext);
+    return nextContext;
+}
+
 /**
  * Fetches the current shared state for a run
  */
@@ -67,6 +74,7 @@ module.exports = {
     createRun,
     updateRunStatus,
     updateSharedContext,
+    mergeSharedContext,
     getSharedContext,
     logAgentEvent
 };
