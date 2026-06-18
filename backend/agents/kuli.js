@@ -22,8 +22,12 @@ async function execute(runId, prompt) {
     });
 
     const llm = configureLlamaIndex(modelName);
-    const response = await llm.complete({
-        prompt: `You are Kuli, the implementation agent in a multi-agent web development swarm.
+    let response;
+    const maxRetries = 5;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            response = await llm.complete({
+                prompt: `You are Kuli, the implementation agent in a multi-agent web development swarm.
 Generate one complete, production-quality index.html document using HTML, Tailwind CSS via CDN, and Vanilla JavaScript.
 Return raw HTML only. Do not use Markdown fences or explanations.
 The page must be responsive, accessible, and visually polished.
@@ -36,7 +40,14 @@ ${formatBlueprint(blueprint)}
 
 Review feedback to apply:
 ${feedback || 'None'}`
-    });
+            });
+            break;
+        } catch (err) {
+            console.warn(`[Kuli Attempt ${attempt}] failed: ${err.message}`);
+            if (attempt === maxRetries) throw err;
+            await new Promise(res => setTimeout(res, 5000 * attempt));
+        }
+    }
 
     const rawHtml = String(response.text || response.message?.content || response).trim();
     console.log('[Kuli] Raw response length:', rawHtml.length);

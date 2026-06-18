@@ -12,6 +12,7 @@ function configureLlamaIndex(modelName) {
     const llm = new OpenAI({
         model: modelName,
         apiKey: provider.apiKey,
+        maxRetries: 5,
         additionalSessionOptions: {
             baseURL: provider.baseURL
         }

@@ -67,7 +67,18 @@ Design Guidelines:
             .replaceAll('{feedback}', feedback || '')
             .replaceAll('{formatInstructions}', formatInstructions);
 
-        const response = await llm.complete({ prompt: formattedPrompt });
+        let response;
+        const maxRetries = 5;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                response = await llm.complete({ prompt: formattedPrompt });
+                break;
+            } catch (err) {
+                console.warn(`[Gambit Attempt ${attempt}] failed: ${err.message}`);
+                if (attempt === maxRetries) throw err;
+                await new Promise(res => setTimeout(res, 5000 * attempt));
+            }
+        }
         const raw = String(response.text || response.message?.content || response)
             .replace(/```json/gi, '')
             .replace(/```/g, '')

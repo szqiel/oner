@@ -39,10 +39,10 @@ Blueprint Constraints:
 {blueprint}
 
 Output strictly a JSON object with two keys:
-{
+{{
   "passed": true/false (boolean),
   "feedback": "string detailing what needs to be fixed, or LGTM if passed"
-}
+}}
 Do not output schema definitions. Output raw JSON or standard markdown code fences.
 `,
         inputVariables: ["code", "blueprint"]
@@ -51,10 +51,21 @@ Do not output schema definitions. Output raw JSON or standard markdown code fenc
     try {
         const chain = promptTemplate.pipe(llm);
         
-        const response = await chain.invoke({ 
-            code: htmlCode,
-            blueprint: formatBlueprint(blueprint)
-        });
+        let response;
+        const maxRetries = 5;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                response = await chain.invoke({ 
+                    code: htmlCode,
+                    blueprint: formatBlueprint(blueprint)
+                });
+                break;
+            } catch (err) {
+                console.warn(`[Catalyst Attempt ${attempt}] failed: ${err.message}`);
+                if (attempt === maxRetries) throw err;
+                await new Promise(res => setTimeout(res, 5000 * attempt));
+            }
+        }
 
         const content = response.content || String(response);
         console.log('[Catalyst] Raw review response:', content);

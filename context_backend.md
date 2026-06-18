@@ -211,8 +211,17 @@
 *   **What was done:** 
     *   **Refactor Kuli (FastAPI):** Replaced the brittle `child_process.spawn` architecture with a Python FastAPI microservice. Created `backend/python/main.py` to host the AutoGen agent via a lightweight `POST /generate` endpoint.
     *   Updated `backend/agents/kuli.js` to use a standard `fetch` HTTP POST request to call the new FastAPI endpoint instead of spawning heavily-isolated child processes, eliminating memory leaks and hanging issues.
-    *   **Band API Metadata Investigation:** Conducted a comprehensive deep-dive into the Band API to resolve the `422 Unprocessable Entity` metadata bug. Tested passing `metadata` at the root, inside the `message` object, inside the `mentions` array, and as an `event`. 
-*   **What went wrong / Issues faced:** 
     *   **Band API Metadata Rejection:** Exhaustive testing verified that the Band REST API (`POST /v1/agent/chats/{roomId}/messages`) strictly does **not** support custom `metadata` inside the message payload or mention objects. The API returns `validation_error: Unexpected field` for any undocumented fields.
     *   **Workaround Required:** Because the Band platform drops custom metadata entirely, the `runId` cannot be passed "natively" via metadata. We either need to rely on the existing Regex text-parsing hack (`[RunID: {runId}]`) or track `runId` via external state mapping in the orchestrator.
-*   **Next Steps:** Await user confirmation on how to handle the `runId` propagation now that native metadata has been proven unsupported by the Band API.
+*   **Next Steps:** Swarm execution verified end-to-end.
+
+### [2026-06-19] - Swarm Integration Stabilization & E2E Validation
+*   **What was done:**
+    *   Fixed WebSocket URL in `bandApi.js` to point to the correct Phoenix socket URL `wss://app.band.ai/api/v1/socket/websocket` (instead of `wss://api.band.ai/socket`), eliminating getaddrinfo connection failures.
+    *   Enhanced LLM resiliency by adding `maxRetries: 5` to LangChain `ChatOpenAI` and LlamaIndex `OpenAI` client constructors.
+    *   Configured Crucible and Glassion native `fetch` requests with a retry count of 5 and exponential backoff (`5000 * attempt` ms) to withstand Bluesminds API proxy transient 500/429 errors.
+    *   Injected a 3-second pacing delay between agent steps in the mock swarm runner `runMockSwarm` and `runMockFromKuli` to prevent back-to-back LLM calls from hitting rate limits.
+    *   Fixed a bug in `catalyst.js` where the JSON response template curly braces in LangChain `PromptTemplate` were parsed as input variables; escaped them by doubling to `{{` and `}}`.
+    *   Validated the entire mock swarm workflow end-to-end from start to completion. The swarm successfully executed the full pipeline, went through revision cycles, triggered the Human-in-the-Loop escalation, resumed, generated correct HTML, passed QA checks, and ended with status `COMPLETED`.
+*   **Next Steps:** Ready for deploy and demo.
+

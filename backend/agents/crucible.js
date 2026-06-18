@@ -39,7 +39,7 @@ Output strictly a JSON object with two keys: \`approved\` (boolean) and \`feedba
 
     try {
         let response;
-        const maxRetries = 3;
+        const maxRetries = 5;
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 response = await fetch(`${provider.baseURL}/chat/completions`, {
@@ -60,7 +60,7 @@ Output strictly a JSON object with two keys: \`approved\` (boolean) and \`feedba
                 if (attempt === maxRetries) throw err;
                 console.warn(`[Crucible Attempt ${attempt}] error: ${err.message}`);
             }
-            await new Promise(res => setTimeout(res, 3000 * attempt));
+            await new Promise(res => setTimeout(res, 5000 * attempt));
         }
 
         const data = await response.json();

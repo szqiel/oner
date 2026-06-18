@@ -2,7 +2,7 @@ const { Socket } = require('phoenix');
 const WebSocket = require('ws');
 
 const BAND_REST_URL = process.env.BAND_REST_URL || 'https://app.band.ai/api/v1/agent';
-const BAND_WS_URL = process.env.BAND_WS_URL || 'wss://api.band.ai/socket';
+const BAND_WS_URL = process.env.BAND_WS_URL || 'wss://app.band.ai/api/v1/socket/websocket';
 
 class BandClient {
     constructor(agentId, apiKey, agentName) {

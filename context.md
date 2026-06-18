@@ -127,4 +127,14 @@
     *   Injected custom CSS keyframes (`text-shimmer`, `border-spin`) into `globals.css`.
     *   Applied the animated text shimmer to the Oner H1 logo and an animated conic-gradient rotating border to the prompt input field.
     *   (Update) Fixed the `AgentChatPanel` and `LandingScreen` CSS to ensure the rotating light perfectly traces the 1px edge (Google Stitch style) by utilizing centered container masks and opaque backgrounds.
-*   **Next Steps:** Wait for backend agent integration.
+
+### [2026-06-19] - Backend Swarm Stabilization & E2E Validation
+*   **What was done:**
+    *   Identified that the default WebSocket URL for Band was misconfigured as `wss://api.band.ai/socket`. Corrected it to the official endpoint `wss://app.band.ai/api/v1/socket/websocket`.
+    *   Added `maxRetries: 5` to both LangChain (`lib/llm.js`) and LlamaIndex (`lib/llamaIndexLLM.js`) to handle API proxy rate limiting.
+    *   Increased the retry count to 5 and implemented exponential backoff (`5000 * attempt` ms) in the native agents `crucible.js` and `glassion.js`.
+    *   Introduced a 3-second pacing delay between agent steps in the local mock swarm runner (`workflowRunner.js`) to prevent overloading the Bluesminds API proxy.
+    *   Fixed a syntax parsing bug in `catalyst.js` where LangChain `PromptTemplate` treated curly braces in output JSON schema examples as input variables; escaped them as `{{` and `}}`.
+    *   Verified that the E2E mock swarm completes all phases (Routing, Planning, Crucible Plan Review/Revision loop, Kuli HTML generation, Catalyst QA code review, Glassion Playwright rendering & Visual QA) and transitions to `COMPLETED` successfully.
+*   **Next Steps:** Ready for deploy and demo.
+

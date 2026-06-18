@@ -248,10 +248,16 @@ async function runMockFromKuli(runId) {
     const context = await bandState.getSharedContext(runId);
     await bandState.updateRunStatus(runId, 'ASSEMBLING');
     await kuli.execute(runId, context.prompt);
+    await new Promise(r => setTimeout(r, 3000));
+    
     const codeReview = await catalyst.execute(runId);
+    await new Promise(r => setTimeout(r, 3000));
     if (!codeReview.passed) return escalate(runId, 'The resumed build failed code review.');
+    
     const visualReview = await glassion.execute(runId);
+    await new Promise(r => setTimeout(r, 3000));
     if (!visualReview.passed) return escalate(runId, 'The resumed build failed visual review.');
+    
     await bandState.updateRunStatus(runId, 'COMPLETED');
 }
 
@@ -259,11 +265,15 @@ async function runMockSwarm(runId) {
     const context = await bandState.getSharedContext(runId);
     const prompt = context.prompt;
     await librarian.execute(runId, prompt);
+    await new Promise(r => setTimeout(r, 3000));
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
         await bandState.updateRunStatus(runId, 'PLANNING');
         await gambit.execute(runId, prompt);
+        await new Promise(r => setTimeout(r, 3000));
+        
         const planReview = await crucible.execute(runId, prompt);
+        await new Promise(r => setTimeout(r, 3000));
         if (planReview.approved) break;
         if (attempt === 2) return escalate(runId, 'The planning loop failed three reviews.');
     }
@@ -271,19 +281,24 @@ async function runMockSwarm(runId) {
     await bandState.updateRunStatus(runId, 'PLAN_LOCKED');
     for (let attempt = 0; attempt < 2; attempt += 1) {
         await kuli.execute(runId, prompt);
+        await new Promise(r => setTimeout(r, 3000));
+        
         const codeReview = await catalyst.execute(runId);
+        await new Promise(r => setTimeout(r, 3000));
         if (codeReview.passed) break;
         if (attempt === 1) return escalate(runId, 'Kuli failed two consecutive code reviews.');
     }
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
         const visualReview = await glassion.execute(runId);
+        await new Promise(r => setTimeout(r, 3000));
         if (visualReview.passed) {
             await bandState.updateRunStatus(runId, 'COMPLETED');
             return;
         }
         if (attempt === 1) return escalate(runId, 'The interface failed two consecutive visual reviews.');
         await kuli.execute(runId, prompt);
+        await new Promise(r => setTimeout(r, 3000));
     }
 }
 

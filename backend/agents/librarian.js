@@ -15,14 +15,7 @@ async function execute(runId, prompt) {
     const llm = getLLM('gpt-4o');
 
     // 2. Define the desired output schema using Zod
-    const schema = z.object({
-        gambit_model: z.string().describe("The model to assign to Gambit (The Planner)"),
-        kuli_model: z.string().describe("The model to assign to Kuli (The Coder)"),
-        glassion_model: z.string().describe("The model to assign to Glassion (The Visual QA)")
-    });
-
-    const parser = StructuredOutputParser.fromZodSchema(schema);
-    const formatInstructions = parser.getFormatInstructions();
+    const formatInstructions = `Output strictly a JSON object with keys: 'gambit_model', 'kuli_model', and 'glassion_model'. Do not output schema definitions. Output raw JSON or standard markdown code fences.`;
 
     // 3. Create the Prompt Template
     const promptTemplate = new PromptTemplate({
@@ -47,9 +40,44 @@ Prompt: {prompt}
     try {
         console.log(`[Librarian] Invoking LangChain LLM for prompt: "${prompt}"`);
         // 4. Construct and invoke the chain
-        const chain = promptTemplate.pipe(llm).pipe(parser);
+        const chain = promptTemplate.pipe(llm);
         
-        const routingData = await chain.invoke({ prompt: prompt });
+        let response;
+        const maxRetries = 5;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                response = await chain.invoke({ prompt: prompt });
+                break;
+            } catch (err) {
+                console.warn(`[Librarian Attempt ${attempt}] failed: ${err.message}`);
+                if (attempt === maxRetries) throw err;
+                await new Promise(res => setTimeout(res, 5000 * attempt));
+            }
+        }
+
+        const content = response.content || String(response);
+        console.log('[Librarian] Raw response:', content);
+
+        let routingData;
+        try {
+            routingData = JSON.parse(content);
+        } catch (e) {
+            let clean = content;
+            const matches = content.match(/```json\s*([\s\S]*?)\s*```/g);
+            if (matches && matches.length > 0) {
+                const lastMatch = matches[matches.length - 1];
+                clean = lastMatch.replace(/```json/gi, '').replace(/```/g, '').trim();
+            } else {
+                clean = content.replace(/```json/gi, '').replace(/```/g, '').trim();
+            }
+            routingData = JSON.parse(clean);
+        }
+
+        // Validate shape
+        if (!routingData || typeof routingData !== 'object') {
+            throw new Error('Librarian returned an invalid JSON shape.');
+        }
+
         // Enforce gpt-4o for all agents to ensure provider compatibility
         routingData.gambit_model = 'gpt-4o';
         routingData.kuli_model = 'gpt-4o';
