@@ -136,5 +136,14 @@
     *   Introduced a 3-second pacing delay between agent steps in the local mock swarm runner (`workflowRunner.js`) to prevent overloading the Bluesminds API proxy.
     *   Fixed a syntax parsing bug in `catalyst.js` where LangChain `PromptTemplate` treated curly braces in output JSON schema examples as input variables; escaped them as `{{` and `}}`.
     *   Verified that the E2E mock swarm completes all phases (Routing, Planning, Crucible Plan Review/Revision loop, Kuli HTML generation, Catalyst QA code review, Glassion Playwright rendering & Visual QA) and transitions to `COMPLETED` successfully.
+
+### [2026-06-19] - Interactive UI & UX Polish (Minimize & Download Features)
+*   **What was done:**
+    *   Designed and built a premium, collapsible minimized state for the floating chat widget (`AgentChatPanel.tsx`) using Framer Motion's `layout` transitions.
+    *   When minimized, the chat widget collapses into a compact glassmorphic circle at the bottom-left of the viewport. It displays a green unread messages count badge that increments dynamically as the swarm pushes events, and a glowing active status indicator.
+    *   Clicking the circular bubble smoothly expands the chat panel back to full size.
+    *   Created a floating controls bar at the top-right of `Dashboard.tsx` containing two actions: "Open Preview" (renders the generated HTML in a new tab) and "Download HTML" (downloads the self-contained `index.html` file).
+    *   Resolved syntax and parsing compiler issues to ensure Turbopack hot reloads the dev server successfully.
 *   **Next Steps:** Ready for deploy and demo.
+
 

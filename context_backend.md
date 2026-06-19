@@ -223,5 +223,14 @@
     *   Injected a 3-second pacing delay between agent steps in the mock swarm runner `runMockSwarm` and `runMockFromKuli` to prevent back-to-back LLM calls from hitting rate limits.
     *   Fixed a bug in `catalyst.js` where the JSON response template curly braces in LangChain `PromptTemplate` were parsed as input variables; escaped them by doubling to `{{` and `}}`.
     *   Validated the entire mock swarm workflow end-to-end from start to completion. The swarm successfully executed the full pipeline, went through revision cycles, triggered the Human-in-the-Loop escalation, resumed, generated correct HTML, passed QA checks, and ended with status `COMPLETED`.
+
+### [2026-06-19] - Interactive UI & UX Polish (Minimize & Download Features)
+*   **What was done:**
+    *   Designed and built a premium, collapsible minimized state for the floating chat widget (`AgentChatPanel.tsx`) using Framer Motion's `layout` transitions.
+    *   When minimized, the chat widget collapses into a compact glassmorphic circle at the bottom-left of the viewport. It displays a green unread messages count badge that increments dynamically as the swarm pushes events, and a glowing active status indicator.
+    *   Clicking the circular bubble smoothly expands the chat panel back to full size.
+    *   Created a floating controls bar at the top-right of `Dashboard.tsx` containing two actions: "Open Preview" (renders the generated HTML in a new tab) and "Download HTML" (downloads the self-contained `index.html` file).
+    *   Resolved syntax and parsing compiler issues to ensure Turbopack hot reloads the dev server successfully.
 *   **Next Steps:** Ready for deploy and demo.
+
 

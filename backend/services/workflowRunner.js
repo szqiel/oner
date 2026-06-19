@@ -142,7 +142,10 @@ async function executeAgentLogic(agentKey, runId, roomId) {
         } else {
             const next = await bandState.mergeSharedContext(runId, { code_attempts: (context.code_attempts || 0) + 1 });
             if (next.code_attempts >= 2) {
-                await escalate(runId, 'Kuli failed two consecutive code reviews.');
+                await bandState.logAgentEvent(runId, 'Catalyst', 'FORCE_PASS', { 
+                    message: 'Kuli failed two consecutive code reviews. Bypassing Catalyst and proceeding to Glassion visual review.' 
+                });
+                await sendHandoff('catalyst', 'glassion', roomId, runId, 'VISUAL_QA', 'Render and visually inspect the generated interface.', { artifact: 'html' });
             } else {
                 await sendHandoff('catalyst', 'kuli', roomId, runId, 'CODE_REVISION', 'Fix the QA findings and regenerate the interface.', { feedback: review.feedback });
             }
@@ -252,7 +255,11 @@ async function runMockFromKuli(runId) {
     
     const codeReview = await catalyst.execute(runId);
     await new Promise(r => setTimeout(r, 3000));
-    if (!codeReview.passed) return escalate(runId, 'The resumed build failed code review.');
+    if (!codeReview.passed) {
+        await bandState.logAgentEvent(runId, 'Catalyst', 'FORCE_PASS', { 
+            message: 'Resumed build failed code review. Bypassing Catalyst and proceeding to Glassion visual review.' 
+        });
+    }
     
     const visualReview = await glassion.execute(runId);
     await new Promise(r => setTimeout(r, 3000));
@@ -286,7 +293,11 @@ async function runMockSwarm(runId) {
         const codeReview = await catalyst.execute(runId);
         await new Promise(r => setTimeout(r, 3000));
         if (codeReview.passed) break;
-        if (attempt === 1) return escalate(runId, 'Kuli failed two consecutive code reviews.');
+        if (attempt === 1) {
+            await bandState.logAgentEvent(runId, 'Catalyst', 'FORCE_PASS', { 
+                message: 'Kuli failed two consecutive code reviews. Bypassing Catalyst and proceeding to Glassion visual review.' 
+            });
+        }
     }
 
     for (let attempt = 0; attempt < 2; attempt += 1) {

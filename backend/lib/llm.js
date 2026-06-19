@@ -16,7 +16,8 @@ function getLLM(modelName = 'gpt-4o') {
         apiKey: provider.apiKey,
         modelName: modelName,
         temperature: 0.1,
-        maxRetries: 5,
+        maxRetries: 0,
+        timeout: 30000, // 30s timeout
         configuration: {
             baseURL: provider.baseURL,
         }

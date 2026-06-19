@@ -1,9 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import LivePreview from '@/components/LivePreview';
 import AgentChatPanel, { BandMessage } from '@/components/AgentChatPanel';
+import TopBar from '@/components/TopBar';
+import CodeEditor from '@/components/CodeEditor';
 import { supabase } from '@/lib/supabase';
+import { parseFilesFromContext, reassembleHtml, downloadAsZip } from '@/lib/fileParser';
+import type { FileMap } from '@/lib/fileParser';
 import { toast } from 'sonner';
 
 interface DashboardProps {
@@ -22,13 +26,17 @@ interface AgentEventRow {
 interface RunRow {
   id: string;
   status: string;
-  shared_context: { html?: string };
+  shared_context: { html?: string; files?: FileMap };
 }
+
+type Tab = 'preview' | 'code';
 
 export default function Dashboard({ runId }: DashboardProps) {
   const [messages, setMessages] = useState<BandMessage[]>([]);
   const [htmlContent, setHtmlContent] = useState<string>('');
+  const [files, setFiles] = useState<FileMap>({});
   const [status, setStatus] = useState('STARTING');
+  const [activeTab, setActiveTab] = useState<Tab>('preview');
 
   // Framework mapping helper
   const getFramework = (agentName: string) => {
@@ -42,6 +50,15 @@ export default function Dashboard({ runId }: DashboardProps) {
     if (lower.includes('developer')) return 'Human';
     return 'Band Agent';
   };
+
+  // Reassemble HTML from files for preview
+  const previewHtml = useMemo(() => {
+    if (htmlContent) return htmlContent;
+    if (Object.keys(files).length > 0) return reassembleHtml(files);
+    return '';
+  }, [htmlContent, files]);
+
+  const hasContent = previewHtml.length > 0 || Object.keys(files).length > 0;
 
   useEffect(() => {
     // Helper to map DB row to our UI interface
@@ -65,7 +82,19 @@ export default function Dashboard({ runId }: DashboardProps) {
       };
     };
 
-    // 1. Fetch initial data (latest run and its events)
+    const processRunContext = (context: RunRow['shared_context']) => {
+      // Parse multi-file output
+      const parsed = parseFilesFromContext(context);
+      if (Object.keys(parsed).length > 0) {
+        setFiles(parsed);
+      }
+      // Also keep raw HTML for backwards compat
+      if (context?.html) {
+        setHtmlContent(context.html);
+      }
+    };
+
+    // 1. Fetch initial data
     const fetchInitialData = async () => {
       const { data: run, error: runError } = await supabase
         .from('runs')
@@ -79,9 +108,7 @@ export default function Dashboard({ runId }: DashboardProps) {
       }
 
       setStatus(run.status);
-      if (run.shared_context?.html) {
-        setHtmlContent(run.shared_context.html);
-      }
+      processRunContext(run.shared_context);
 
       const { data: events, error: eventsError } = await supabase
         .from('agent_events')
@@ -101,7 +128,6 @@ export default function Dashboard({ runId }: DashboardProps) {
     // 2. Setup Realtime Subscriptions
     const channel = supabase.channel(`oner-run-${runId}`);
 
-    // Listen for new agent events (chat messages)
     channel.on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'agent_events', filter: `run_id=eq.${runId}` },
@@ -114,16 +140,13 @@ export default function Dashboard({ runId }: DashboardProps) {
       }
     );
 
-    // Listen for state updates (HTML code generation)
     channel.on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'runs', filter: `id=eq.${runId}` },
       (payload) => {
         const updatedRun = payload.new as RunRow;
         setStatus(updatedRun.status);
-        if (updatedRun.shared_context?.html) {
-          setHtmlContent(updatedRun.shared_context.html);
-        }
+        processRunContext(updatedRun.shared_context);
       }
     );
 
@@ -164,32 +187,64 @@ export default function Dashboard({ runId }: DashboardProps) {
     }
   };
 
+  const handleDownload = () => {
+    const downloadFiles = Object.keys(files).length > 0 ? files : parseFilesFromContext({ html: htmlContent });
+    downloadAsZip(downloadFiles);
+  };
+
   return (
-    <main className="relative w-full h-screen overflow-hidden bg-black">
-      {/* Background Live Preview or Loading State */}
-      <div className="absolute inset-0 z-0">
-        {!htmlContent ? (
-          <div className="flex flex-col items-center justify-center w-full h-full bg-[#050505]">
-            <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mb-6"></div>
-            <h2 className="text-xl font-medium text-white/80 animate-pulse tracking-wide">
-              The Swarm is orchestrating...
-            </h2>
-            <p className="text-sm text-white/40 mt-2">
-              Waiting for Kuli to compile the layout.
-            </p>
+    <main className="relative w-full h-screen overflow-hidden bg-[#050505] flex flex-col">
+      {/* Top Bar */}
+      <TopBar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onDownload={handleDownload}
+        hasContent={hasContent}
+      />
+
+      {/* Content Area */}
+      <div className="flex-1 relative overflow-hidden">
+        {activeTab === 'preview' ? (
+          <div className="absolute inset-0">
+            {!previewHtml ? (
+              <div className="flex flex-col items-center justify-center w-full h-full bg-[#050505]">
+                <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mb-6"></div>
+                <h2 className="text-xl font-medium text-white/80 animate-pulse tracking-wide">
+                  The Swarm is orchestrating...
+                </h2>
+                <p className="text-sm text-white/40 mt-2">
+                  Waiting for Kuli to compile the layout.
+                </p>
+              </div>
+            ) : (
+              <LivePreview htmlContent={previewHtml} />
+            )}
           </div>
         ) : (
-          <LivePreview htmlContent={htmlContent} />
+          <div className="flex flex-col h-full">
+            {Object.keys(files).length > 0 ? (
+              <CodeEditor files={files} />
+            ) : previewHtml ? (
+              <CodeEditor files={parseFilesFromContext({ html: previewHtml })} />
+            ) : (
+              <div className="flex flex-col items-center justify-center w-full h-full text-zinc-500">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-12 h-12 mb-4 opacity-40">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+                </svg>
+                <p className="text-sm">Waiting for code generation...</p>
+              </div>
+            )}
+          </div>
         )}
-      </div>
 
-      {/* Floating Agent Chat Panel */}
-      <div className="absolute bottom-6 left-6 z-10 shadow-2xl">
-        <AgentChatPanel 
-          messages={messages} 
-          onSendMessage={handleSendMessage} 
-          status={status}
-        />
+        {/* Floating Agent Chat Panel */}
+        <div className="absolute bottom-6 left-6 z-10 shadow-2xl">
+          <AgentChatPanel
+            messages={messages}
+            onSendMessage={handleSendMessage}
+            status={status}
+          />
+        </div>
       </div>
     </main>
   );

@@ -12,7 +12,8 @@ function configureLlamaIndex(modelName) {
     const llm = new OpenAI({
         model: modelName,
         apiKey: provider.apiKey,
-        maxRetries: 5,
+        maxRetries: 0,
+        timeout: 30000, // 30s timeout
         additionalSessionOptions: {
             baseURL: provider.baseURL
         }
